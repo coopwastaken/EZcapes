@@ -1,6 +1,6 @@
 {
   "name": "ezcapes",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -14,8 +14,19 @@
     "appId": "com.mctools.ezcapes",
     "productName": "EZCAPES",
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "coopwastaken",
+      "repo": "EZcapes"
     },
     "files": [
       "main.js",
@@ -26,6 +37,7 @@
     ]
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "jszip": "^3.10.1"
   },
   "devDependencies": {
