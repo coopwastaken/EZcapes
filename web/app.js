@@ -188,16 +188,17 @@ function makeSkinHeadThumb(dataURL) {
 }
 
 let renderSkinsId = 0;
-function renderBuilderSkins() {
+async function renderBuilderSkins() {
   const myId = ++renderSkinsId;
   const list = $('#builderSkinList'); list.innerHTML = '';
-  CB.skins.forEach(async s => {
+  for (const s of CB.skins) {
     if (myId !== renderSkinsId) return;
     const el = document.createElement('div'); el.className = 'bskin-item';
     const previewDiv = document.createElement('div'); previewDiv.className = 'bskin-preview';
     const thumbImg = document.createElement('img');
     thumbImg.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;object-fit:contain;border-radius:4px;';
     thumbImg.src = await makeSkinHeadThumb(s.dataURL);
+    if (myId !== renderSkinsId) return;
     previewDiv.appendChild(thumbImg);
     const infoDiv = document.createElement('div'); infoDiv.className = 'bskin-info';
     infoDiv.innerHTML = `<div class="bskin-name">${esc(s.name)}</div><div class="bskin-meta">${s.slim ? 'Slim' : 'Classic'} · ${s.w}x${s.h}</div>`;
@@ -211,7 +212,7 @@ function renderBuilderSkins() {
     el.appendChild(infoDiv);
     el.appendChild(rmBtn);
     list.appendChild(el);
-  });
+  }
 }
 
 // ── Capes ──
