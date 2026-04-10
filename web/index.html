@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EZCAPES by mc-tools.net</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/skinview3d@3.1.0/bundles/skinview3d.bundle.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-layout">
+
+  <!-- Sidebar Nav -->
+  <nav class="sidebar-nav">
+    <div class="sidebar-brand">
+      <div class="brand-name">EZCAPES</div>
+      <div class="brand-sub">by mc-tools.net</div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-tab active" data-page="builder"><span class="nav-icon">⚒️</span> Pack Builder</button>
+      <button class="nav-tab" data-page="skins"><span class="nav-icon">🧍</span> Skin Library</button>
+      <button class="nav-tab" data-page="capes"><span class="nav-icon">🧥</span> Cape Library</button>
+      <button class="nav-tab" data-page="editor"><span class="nav-icon">✏️</span> Cape Editor</button>
+      <button class="nav-tab" data-page="packs"><span class="nav-icon">📦</span> Saved Packs</button>
+    </div>
+    <div class="sidebar-footer">EZCAPES v1.0.1 — mc-tools.net</div>
+  </nav>
+
+  <main class="main-content">
+
+  <!-- ═══ PACK BUILDER PAGE ═══ -->
+  <div class="page active" id="page-builder">
+    <div class="page-header">
+      <h2>Build Cape Pack</h2>
+      <button class="btn btn-sm" id="btnStartCurrent" style="margin-right:4px">Start from Current</button>
+      <button class="btn btn-accent" id="btnBuild" disabled>Build & Apply</button>
+    </div>
+
+    <div class="grid-2">
+      <!-- Left column -->
+      <div>
+        <div class="card">
+          <div class="card-label">Pack Settings</div>
+          <div class="row">
+            <div class="field"><label>Pack Name</label><input type="text" id="packName" placeholder="My Cape Pack" maxlength="80"></div>
+            <div class="field" style="max-width:120px"><label>Version</label><input type="text" id="packVer" value="1.0.0" maxlength="12"></div>
+          </div>
+          <div class="field"><label>Description</label><input type="text" id="packDesc" placeholder="Custom capes for Bedrock" maxlength="256"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Skins</div>
+          <div class="dropzone" id="skinDropzone">
+            <input type="file" id="skinFileInput" multiple accept="image/png" style="display:none">
+            <div class="dz-icon">🧍</div>
+            <div class="dz-text">Drop skin PNGs, folders, or .mcpack here — or <strong>click to browse</strong></div>
+          </div>
+          <div class="builder-skin-list" id="builderSkinList"></div>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div>
+        <div class="card">
+          <div class="card-label">Capes</div>
+          <div class="dropzone" id="capeDropzone">
+            <input type="file" id="capeFileInput" multiple accept="image/png" style="display:none">
+            <div class="dz-icon">🧥</div>
+            <div class="dz-text">Drop cape PNGs or folders here — or <strong>click to browse</strong></div>
+          </div>
+          <div class="builder-cape-grid" id="builderCapeGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assignments (full width) -->
+    <div class="card">
+      <div class="card-label">Cape Assignments</div>
+      <div class="assign-actions">
+        <button class="btn btn-sm" id="btnAssignAll">All Skins × All Capes</button>
+        <button class="btn btn-sm" id="btnClearAll">Clear All</button>
+      </div>
+      <div id="assignArea"></div>
+      <div class="assign-empty" id="assignEmpty">Add skins and capes above to start assigning.</div>
+    </div>
+
+    <div class="card" id="statusCard" style="display:none">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="status-text" id="statusText"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SKIN LIBRARY PAGE ═══ -->
+  <div class="page" id="page-skins">
+    <div class="page-header">
+      <h2>Skin Library</h2>
+      <div class="dropzone-inline" id="skinLibDropzone">
+        <input type="file" id="skinLibFileInput" multiple accept="image/png" style="display:none">
+        <button class="btn btn-accent">+ Add Skins</button>
+      </div>
+    </div>
+    <div class="skin-lib-grid" id="skinLibGrid">
+      <div class="lib-empty">No skins saved yet. Add some above!</div>
+    </div>
+  </div>
+
+  <!-- ═══ CAPE LIBRARY PAGE ═══ -->
+  <div class="page" id="page-capes">
+    <div class="page-header">
+      <h2>Cape Library</h2>
+      <div class="dropzone-inline" id="capeLibDropzone">
+        <input type="file" id="capeLibFileInput" multiple accept="image/png" style="display:none">
+        <button class="btn btn-accent">+ Add Capes</button>
+      </div>
+    </div>
+    <div class="cape-section-label">Built-in Capes</div>
+    <div class="cape-lib-grid" id="builtinCapeGrid"></div>
+    <div class="cape-section-label" style="margin-top:20px">My Capes</div>
+    <div class="cape-lib-grid" id="myCapeGrid">
+      <div class="lib-empty">No custom capes yet. Add some above!</div>
+    </div>
+  </div>
+
+  <!-- ═══ CAPE EDITOR PAGE ═══ -->
+  <div class="page" id="page-editor">
+    <div class="page-header">
+      <h2>Cape Editor</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-accent" id="ceDownload">Download Cape</button>
+        <button class="btn btn-sm" id="ceSaveToLib">Save to Library</button>
+        <label class="btn btn-sm" style="cursor:pointer;display:inline-flex;align-items:center">Import PNG<input type="file" id="ceImport" accept="image/png" style="display:none"></label>
+        <button class="btn btn-sm btn-danger" id="ceClear">Clear</button>
+      </div>
+    </div>
+
+    <div class="ce-wrap">
+      <!-- Canvas Area -->
+      <div class="ce-canvas-area">
+        <div class="ce-view-toggle">
+          <button class="ce-view-btn active" data-ceview="2d">2D Editor</button>
+          <button class="ce-view-btn" data-ceview="3d">3D Cape</button>
+        </div>
+        <!-- 2D Editor View -->
+        <div id="ceView2D">
+          <div class="card" style="padding:12px"><div class="card-label">Cape Texture (64x32)</div>
+            <div class="ce-canvas-wrap" id="ceCanvasWrap">
+              <canvas class="ce-template-overlay" id="ceTemplate" width="64" height="32"></canvas>
+              <canvas class="ce-grid-overlay" id="ceGrid"></canvas>
+              <canvas class="ce-labels-overlay" id="ceLabels"></canvas>
+              <canvas id="ceCvs" width="64" height="32"></canvas>
+              <canvas class="ce-select-overlay" id="ceSelectCvs"></canvas>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-sm" id="ceUndo">Undo</button>
+              <button class="btn btn-sm" id="ceRedo">Redo</button>
+              <div style="flex:1"></div>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-sec);cursor:pointer"><input type="checkbox" id="ceShowGrid" checked style="accent-color:var(--accent)"> Grid</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-sec);cursor:pointer"><input type="checkbox" id="ceShowTemplate" checked style="accent-color:var(--accent)"> Template</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-sec);cursor:pointer"><input type="checkbox" id="ceShowLabels" style="accent-color:var(--accent)"> Labels</label>
+            </div>
+          </div>
+        </div>
+        <!-- 3D Preview View -->
+        <div id="ceView3D" style="display:none">
+          <div class="card" style="padding:12px"><div class="card-label">3D Cape Preview</div>
+            <div class="ce-3d-wrap" id="ce3dWrap">
+              <canvas id="ce3dCanvas"></canvas>
+              <div class="ce-3d-hint">drag to rotate · scroll to zoom</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <button class="btn btn-sm" id="ce3dUndo">Undo</button>
+              <button class="btn btn-sm" id="ce3dRedo">Redo</button>
+              <div style="flex:1"></div>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-sec);cursor:pointer"><input type="checkbox" id="ce3dAutoRotate" style="accent-color:var(--accent)"> Auto-rotate</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-sec);cursor:pointer"><input type="checkbox" id="ce3dShowBack" checked style="accent-color:var(--accent)"> Show player</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="ce-sidebar">
+        <div class="card"><div class="card-label">Tools</div>
+          <div class="ce-tool-row">
+            <button class="ce-tool-btn active" data-tool="pen">Pen</button>
+            <button class="ce-tool-btn" data-tool="eraser">Eraser</button>
+            <button class="ce-tool-btn" data-tool="fill">Fill</button>
+            <button class="ce-tool-btn" data-tool="replace">Replace</button>
+            <button class="ce-tool-btn" data-tool="picker">Picker</button>
+            <button class="ce-tool-btn" data-tool="line">Line</button>
+            <button class="ce-tool-btn" data-tool="select">Select</button>
+            <button class="ce-tool-btn" data-tool="gradient">Gradient</button>
+          </div>
+        </div>
+
+        <div class="card"><div class="card-label">Color</div>
+          <div class="ce-color-area">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <input type="color" id="ceColor" value="#FF0000" style="width:36px;height:36px;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer;padding:0">
+              <div class="ce-palette" id="cePalette"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+              <label style="font-size:11px;color:var(--text-sec)">Color B</label>
+              <input type="color" id="ceColor2" value="#0000FF" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;padding:0">
+              <span style="font-size:10px;color:var(--text-mut)">(gradient)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+              <label style="font-size:11px;color:var(--text-sec)">Opacity</label>
+              <input type="range" id="ceAlpha" min="1" max="50" value="50" style="flex:1;accent-color:var(--accent)">
+              <span id="ceAlphaVal" style="font-size:11px;color:var(--text-sec);min-width:20px">50</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card"><div class="card-label">Layers</div>
+          <div style="display:flex;gap:4px;margin-bottom:6px">
+            <button class="btn btn-sm" id="ceLayerAdd">+ Add</button>
+            <button class="btn btn-sm" id="ceLayerDel">Delete</button>
+            <button class="btn btn-sm" id="ceLayerUp">↑</button>
+            <button class="btn btn-sm" id="ceLayerDown">↓</button>
+          </div>
+          <div id="ceLayerList" class="ce-layer-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SAVED PACKS PAGE ═══ -->
+  <div class="page" id="page-packs">
+    <div class="page-header">
+      <h2>Saved Packs</h2>
+    </div>
+    <div class="pack-list" id="packList">
+      <div class="lib-empty">No saved packs yet. Build one in Pack Builder!</div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-label">Install Instructions</div>
+      <div class="install-steps">
+        <div class="inst-step"><span class="inst-num">1</span> Download the .zip file</div>
+        <div class="inst-step"><span class="inst-num">2</span> Extract the folder inside</div>
+        <div class="inst-step"><span class="inst-num">3</span> Drag into <code>C:\XboxGames\Minecraft for Windows\Content\data\skin_packs\</code></div>
+        <div class="inst-step"><span class="inst-num">4</span> Launch Minecraft → Classic Skins menu</div>
+      </div>
+    </div>
+  </div>
+
+  </main>
+  </div>
+
+  <script src="gallery.js"></script>
+  <script src="app.js"></script>
+  <script src="cape-editor.js"></script>
+</body>
+</html>
