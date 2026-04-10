@@ -216,7 +216,7 @@ async function renderBuilderSkins() {
 }
 
 // ── Capes ──
-function addCape(dataURL, name) {
+function addCape(dataURL, name, saveToLib) {
   if (CB.capes.find(c => c.name.toLowerCase() === name.toLowerCase())) return;
   const img = new Image();
   img.onload = () => {
@@ -224,7 +224,7 @@ function addCape(dataURL, name) {
     const id = CB.nCapeId++;
     CB.capes.push({ id, name, dataURL, w: img.width, h: img.height });
     renderBuilderCapes(); renderAssignments(); updateBuildBtn();
-    saveCapeToLib(name, dataURL);
+    if (saveToLib !== false) saveCapeToLib(name, dataURL);
   };
   img.src = dataURL;
 }
@@ -515,7 +515,7 @@ function updateSelectionBar(type) {
       } else {
         const allCards = [...$$('#builtinCapeGrid .cape-lib-card.selected'), ...$$('#myCapeGrid .cape-lib-card.selected')];
         for (const card of allCards) {
-          if (card._capeData) addCape(card._capeData.src, card._capeData.name);
+          if (card._capeData) addCape(card._capeData.src, card._capeData.name, !card._capeData.builtin);
         }
         selectedCapes.clear();
       }
@@ -721,11 +721,11 @@ function renderBuiltinCapes() {
       if (selectedCapes.has(key)) selectedCapes.delete(key);
       else selectedCapes.add(key);
       card.classList.toggle('selected', selectedCapes.has(key));
-      card._capeData = { src: g.src, name: g.name };
+      card._capeData = { src: g.src, name: g.name, builtin: true };
       updateSelectionBar('capes');
     });
     card.addEventListener('dblclick', () => {
-      addCape(g.src, g.name);
+      addCape(g.src, g.name, false);
       $$('.nav-tab')[0].click();
       toast('Added ' + g.name + ' to builder');
     });
