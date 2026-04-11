@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCapeLibPage();
   setupLibDropTargets();
   renderBuiltinCapes();
+  renderSidebarProfiles();
 });
 
 // ══════════════════ PACK BUILDER ══════════════════
@@ -478,6 +479,34 @@ function setupLibDropTargets() {
   });
 }
 
+// ══════════════════ SIDEBAR PROFILES ══════════════════
+function renderSidebarProfiles() {
+  const container = $('#sidebarProfiles');
+  if (!container) return;
+  const packs = lsGet('ez_packs').filter(p => p.profile);
+  if (!packs.length) { container.innerHTML = ''; return; }
+  container.innerHTML = '<div class="sidebar-profiles-label">Profiles</div>';
+  packs.forEach(p => {
+    const btn = document.createElement('button'); btn.className = 'sidebar-profile-btn';
+    btn.innerHTML = `<span class="profile-star">⭐</span><span class="profile-name">${esc(p.name)}</span><span class="profile-apply">Apply</span>`;
+    btn.addEventListener('click', async () => {
+      if (window.ezcapes && window.ezcapes.installPack) {
+        try {
+          const bytes = Uint8Array.from(atob(p.zip64), c => c.charCodeAt(0));
+          await window.ezcapes.installPack({ zipBuffer: bytes.buffer });
+          toast('Applied ' + p.name + '! Restart Minecraft.');
+        } catch (e) { toast('Failed: ' + e.message, true); }
+      } else {
+        const bytes = Uint8Array.from(atob(p.zip64), c => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: 'application/zip' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'custom.zip'; a.click();
+        toast('Downloaded ' + p.name);
+      }
+    });
+    container.appendChild(btn);
+  });
+}
+
 function showProgress(t, p) { $('#statusCard').style.display = ''; $('#progressFill').style.width = p + '%'; $('#statusText').textContent = t; }
 function hideProgress() { $('#statusCard').style.display = 'none'; }
 
@@ -848,7 +877,7 @@ function renderPacksPage() {
     el.querySelector('.del-btn').addEventListener('click', () => {
       const packs = lsGet('ez_packs').filter(x => x.id !== p.id);
       lsSet('ez_packs', packs);
-      renderPacksPage();
+      renderPacksPage(); renderSidebarProfiles();
       toast('Deleted ' + p.name);
     });
 
@@ -857,7 +886,7 @@ function renderPacksPage() {
       const item = packs.find(x => x.id === p.id);
       if (item) item.profile = !item.profile;
       lsSet('ez_packs', packs);
-      renderPacksPage();
+      renderPacksPage(); renderSidebarProfiles();
       toast(item.profile ? p.name + ' added to profiles' : p.name + ' removed from profiles');
     });
 
@@ -874,7 +903,7 @@ function renderPacksPage() {
         const item = packs.find(x => x.id === p.id);
         if (item) item.name = newName;
         lsSet('ez_packs', packs);
-        renderPacksPage();
+        renderPacksPage(); renderSidebarProfiles();
       };
       input.addEventListener('blur', finish);
       input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });

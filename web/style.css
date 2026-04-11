@@ -34,7 +34,16 @@ body::before { content: ''; position: fixed; inset: 0; background: url("data:ima
 .sidebar-brand { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
 .brand-name { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent-bright)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
 .brand-sub { font-size: 9px; color: var(--text-mut); letter-spacing: 4px; text-transform: uppercase; margin-top: 2px; }
-.nav-links { padding: 16px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-profiles { padding: 10px 10px 0; }
+.sidebar-profiles:empty { display: none; }
+.sidebar-profiles-label { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-mut); padding: 0 6px 6px; font-weight: 600; }
+.sidebar-profile-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; background: rgba(140,110,220,0.06); border: 1px solid rgba(140,110,220,0.12); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; margin-bottom: 4px; font-family: var(--font); font-size: 12px; color: var(--text-sec); text-align: left; }
+.sidebar-profile-btn:hover { background: rgba(140,110,220,0.12); border-color: rgba(140,110,220,0.25); color: #fff; }
+.sidebar-profile-btn .profile-star { font-size: 14px; }
+.sidebar-profile-btn .profile-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-profile-btn .profile-apply { font-size: 10px; color: var(--accent); opacity: 0; transition: opacity 0.15s; font-weight: 600; }
+.sidebar-profile-btn:hover .profile-apply { opacity: 1; }
+.nav-links { padding: 8px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .nav-tab { font-family: var(--font); font-size: 13px; font-weight: 500; padding: 11px 16px; border: none; border-radius: var(--radius-sm); cursor: pointer; background: transparent; color: var(--text-sec); transition: all 0.15s; text-align: left; display: flex; align-items: center; gap: 10px; }
 .nav-tab:hover { background: rgba(140,110,220,0.06); color: var(--text); }
 .nav-tab.active { background: linear-gradient(135deg, rgba(124,77,255,0.15), rgba(164,124,255,0.08)); color: var(--accent-bright); border-left: 3px solid var(--accent); }
