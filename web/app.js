@@ -635,37 +635,23 @@ function renderSkinLibPage() {
     });
     grid.appendChild(card);
 
-    // Static 2D preview by default, 3D on hover via shared viewer
-    makeSkinHeadThumb(s.dataURL).then(thumb => {
-      const img = document.createElement('img');
-      img.src = thumb;
-      img.style.cssText = 'width:48px;height:48px;image-rendering:pixelated;margin:20px auto;display:block;border-radius:4px;';
-      viewerDiv.appendChild(img);
-    });
-    // On hover, replace with 3D viewer
-    let hoverViewer = null;
-    card.addEventListener('mouseenter', () => {
-      if (hoverViewer) return;
-      try {
-        hoverViewer = new skinview3d.SkinViewer({ canvas: document.createElement('canvas'), width: 120, height: 100, skin: s.dataURL, model: s.slim ? 'slim' : 'default' });
-        hoverViewer.autoRotate = true;
-        hoverViewer.autoRotateSpeed = 0.3;
-        hoverViewer.camera.position.set(0, 5, 35);
-        hoverViewer.animation = new skinview3d.IdleAnimation();
-        viewerDiv.innerHTML = '';
-        viewerDiv.appendChild(hoverViewer.canvas);
-      } catch (e) {}
-    });
-    card.addEventListener('mouseleave', () => {
-      if (hoverViewer) { hoverViewer.dispose(); hoverViewer = null; }
-      viewerDiv.innerHTML = '';
+    // Full 3D model with very slow rotation
+    try {
+      const viewer = new skinview3d.SkinViewer({ canvas: document.createElement('canvas'), width: 120, height: 100, skin: s.dataURL, model: s.slim ? 'slim' : 'default' });
+      viewer.autoRotate = true;
+      viewer.autoRotateSpeed = 0.15;
+      viewer.camera.position.set(0, 5, 35);
+      viewer.animation = new skinview3d.IdleAnimation();
+      viewerDiv.appendChild(viewer.canvas);
+    } catch (e) {
+      // Fallback to 2D head if WebGL limit hit
       makeSkinHeadThumb(s.dataURL).then(thumb => {
         const img = document.createElement('img');
         img.src = thumb;
         img.style.cssText = 'width:48px;height:48px;image-rendering:pixelated;margin:20px auto;display:block;border-radius:4px;';
         viewerDiv.appendChild(img);
       });
-    });
+    }
   });
 }
 
@@ -788,13 +774,69 @@ async function savePackToLib(name, blob) {
 
 function renderPacksPage() {
   const list = $('#packList');
+  const profileList = $('#profileList');
   const packs = lsGet('ez_packs');
-  if (!packs.length) { list.innerHTML = '<div class="lib-empty">No saved packs yet. Build one in Pack Builder!</div>'; return; }
+  if (!packs.length) {
+    list.innerHTML = '<div class="lib-empty">No saved packs yet. Build one in Pack Builder!</div>';
+    profileList.innerHTML = '<div class="lib-empty" style="padding:20px">No profiles yet. Star a pack below to make it a profile.</div>';
+    return;
+  }
+
+  const profiles = packs.filter(p => p.profile);
+  const nonProfiles = packs;
+
+  // Render profiles
+  profileList.innerHTML = '';
+  if (!profiles.length) {
+    profileList.innerHTML = '<div class="lib-empty" style="padding:20px">No profiles yet. Star a pack below to make it a profile.</div>';
+  } else {
+    profiles.forEach(p => {
+      const el = document.createElement('div'); el.className = 'pack-item';
+      el.style.borderColor = 'rgba(140,110,220,0.25)';
+      el.innerHTML = `<div class="pack-icon">⭐</div><div class="pack-info"><div class="pack-name">${esc(p.name)}</div></div><div class="pack-actions"><button class="btn btn-accent apply-btn" style="font-size:11px;padding:6px 14px">Apply</button></div>`;
+      el.querySelector('.apply-btn').addEventListener('click', async () => {
+        if (window.ezcapes && window.ezcapes.installPack) {
+          try {
+            const bytes = Uint8Array.from(atob(p.zip64), c => c.charCodeAt(0));
+            await window.ezcapes.installPack({ zipBuffer: bytes.buffer });
+            toast('Applied ' + p.name + '! Restart Minecraft.');
+          } catch (e) { toast('Failed: ' + e.message, true); }
+        } else {
+          const bytes = Uint8Array.from(atob(p.zip64), c => c.charCodeAt(0));
+          const blob = new Blob([bytes], { type: 'application/zip' });
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'custom.zip'; a.click();
+          toast('Downloaded ' + p.name);
+        }
+      });
+      profileList.appendChild(el);
+    });
+  }
+
+  // Render all packs
   list.innerHTML = '';
   packs.forEach(p => {
     const el = document.createElement('div'); el.className = 'pack-item';
     const date = p.savedAt ? new Date(p.savedAt).toLocaleDateString() : '';
-    el.innerHTML = `<div class="pack-icon">📦</div><div class="pack-info"><div class="pack-name" title="Double-click to rename">${esc(p.name)}</div><div class="pack-date">${date}</div></div><div class="pack-actions"><button class="btn btn-sm dl-btn">Download</button><button class="btn btn-sm btn-danger del-btn">Delete</button></div>`;
+    const starIcon = p.profile ? '⭐' : '☆';
+    el.innerHTML = `<div class="pack-icon">📦</div><div class="pack-info"><div class="pack-name" title="Double-click to rename">${esc(p.name)}</div><div class="pack-date">${date}</div></div><div class="pack-actions"><button class="btn btn-sm star-btn" title="Toggle profile">${starIcon}</button><button class="btn btn-accent apply-btn" style="font-size:11px;padding:6px 14px">Apply</button><button class="btn btn-sm dl-btn">Download</button><button class="btn btn-sm btn-danger del-btn">Delete</button></div>`;
+
+    el.querySelector('.apply-btn').addEventListener('click', async () => {
+      if (window.ezcapes && window.ezcapes.installPack) {
+        try {
+          const bytes = Uint8Array.from(atob(p.zip64), c => c.charCodeAt(0));
+          const result = await window.ezcapes.installPack({ zipBuffer: bytes.buffer });
+          toast('Applied ' + p.name + '! Restart Minecraft to see changes.');
+        } catch (e) {
+          toast('Failed to apply: ' + e.message, true);
+        }
+      } else {
+        // Web fallback — download
+        const bytes = Uint8Array.from(atob(p.zip64), c => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: 'application/zip' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'custom.zip'; a.click(); URL.revokeObjectURL(a.href);
+        toast('Downloaded ' + p.name + ' (apply manually)');
+      }
+    });
 
     el.querySelector('.dl-btn').addEventListener('click', () => {
       const bytes = Uint8Array.from(atob(p.zip64), c => c.charCodeAt(0));
@@ -808,6 +850,15 @@ function renderPacksPage() {
       lsSet('ez_packs', packs);
       renderPacksPage();
       toast('Deleted ' + p.name);
+    });
+
+    el.querySelector('.star-btn').addEventListener('click', () => {
+      const packs = lsGet('ez_packs');
+      const item = packs.find(x => x.id === p.id);
+      if (item) item.profile = !item.profile;
+      lsSet('ez_packs', packs);
+      renderPacksPage();
+      toast(item.profile ? p.name + ' added to profiles' : p.name + ' removed from profiles');
     });
 
     el.querySelector('.pack-name').addEventListener('dblclick', e => {
