@@ -570,10 +570,86 @@ function updateSelectionBar(type) {
 }
 
 // ══════════════════ SKIN LIBRARY PAGE ══════════════════
+// ── Skin fetch by username ──
+async function fetchSkinByName(username, statusEl) {
+  const apis = [
+    { name: 'minotar.net', url: `https://minotar.net/skin/${username}` },
+    { name: 'mc-heads.net', url: `https://mc-heads.net/skin/${username}` },
+    { name: 'mineskin.eu', url: `https://mineskin.eu/skin/${username}` },
+  ];
+  for (const api of apis) {
+    if (statusEl) statusEl.textContent = `Trying ${api.name}...`;
+    try {
+      const resp = await fetch(api.url, { mode: 'cors' });
+      if (!resp.ok) continue;
+      const blob = await resp.blob();
+      if (blob.size < 100) continue;
+      const blobUrl = URL.createObjectURL(blob);
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(); i.src = blobUrl; });
+      if (img.width >= 64 && (img.height === 64 || img.height === 32)) {
+        if (statusEl) { statusEl.textContent = `Loaded via ${api.name}`; statusEl.style.color = 'var(--accent)'; }
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        return { img, dataURL: c.toDataURL('image/png') };
+      }
+    } catch (e) { continue; }
+  }
+  if (statusEl) { statusEl.textContent = 'Could not find skin for that username'; statusEl.style.color = 'var(--red)'; }
+  return null;
+}
+
+async function fetchBedrockSkin(gamertag, statusEl) {
+  if (statusEl) statusEl.textContent = 'Looking up Bedrock player...';
+  try {
+    const r = await fetch(`https://mcprofile.io/api/v1/bedrock/gamertag/${encodeURIComponent(gamertag)}`, { mode: 'cors' });
+    if (!r.ok) throw new Error('Not found');
+    const j = await r.json();
+    if (!j.skin_url && !j.skin) {
+      if (statusEl) { statusEl.textContent = 'No skin found for Bedrock player'; statusEl.style.color = 'var(--red)'; }
+      return null;
+    }
+    const skinUrl = j.skin_url || j.skin;
+    if (statusEl) statusEl.textContent = 'Downloading skin...';
+    const resp = await fetch(skinUrl, { mode: 'cors' });
+    if (!resp.ok) throw new Error('Skin download failed');
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(); i.src = blobUrl; });
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    c.getContext('2d').drawImage(img, 0, 0);
+    if (statusEl) { statusEl.textContent = 'Loaded via mcprofile.io'; statusEl.style.color = 'var(--accent)'; }
+    return { img, dataURL: c.toDataURL('image/png') };
+  } catch (e) {
+    if (statusEl) { statusEl.textContent = 'Bedrock lookup failed — player may not exist'; statusEl.style.color = 'var(--red)'; }
+    return null;
+  }
+}
+
 function setupSkinLibPage() {
   const btn = $('#skinLibDropzone .btn');
   const input = $('#skinLibFileInput');
   btn.addEventListener('click', () => input.click());
+
+  // Username fetch buttons
+  const fetchInput = $('#skinFetchName');
+  const fetchStatus = $('#skinFetchStatus');
+
+  async function doFetch(edition) {
+    const name = fetchInput.value.trim();
+    if (!name) { toast('Enter a username', true); return; }
+    fetchStatus.textContent = 'Fetching...'; fetchStatus.style.color = 'var(--text-mut)';
+    const result = edition === 'bedrock' ? await fetchBedrockSkin(name, fetchStatus) : await fetchSkinByName(name, fetchStatus);
+    if (result) {
+      addSkin(result.dataURL, name);
+      renderSkinLibPage();
+      toast('Added ' + name);
+      fetchInput.value = '';
+    }
+  }
+
+  $('#skinFetchJava').addEventListener('click', () => doFetch('java'));
+  $('#skinFetchBedrock').addEventListener('click', () => doFetch('bedrock'));
+  fetchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doFetch('java'); });
   input.addEventListener('change', e => {
     for (const f of e.target.files) {
       if (!f.type.startsWith('image/')) continue;

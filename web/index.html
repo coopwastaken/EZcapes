@@ -29,7 +29,7 @@
       <button class="nav-tab" data-page="editor"><span class="nav-icon">✏️</span> Cape Editor</button>
       <button class="nav-tab" data-page="packs"><span class="nav-icon">📦</span> Saved Packs</button>
     </div>
-    <div class="sidebar-footer">EZCAPES v1.2.2 — mc-tools.net</div>
+    <div class="sidebar-footer">EZCAPES v1.3.0 — mc-tools.net</div>
   </nav>
 
   <main class="main-content">
@@ -104,6 +104,20 @@
         <input type="file" id="skinLibFileInput" multiple accept="image/png" style="display:none">
         <button class="btn btn-accent">+ Add Skins</button>
       </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-label">Fetch by Username</div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div class="field" style="flex:1;margin:0">
+          <label>Username</label>
+          <input type="text" id="skinFetchName" placeholder="Enter username">
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" id="skinFetchJava" style="white-space:nowrap">Java</button>
+          <button class="btn btn-sm" id="skinFetchBedrock" style="white-space:nowrap">Bedrock</button>
+        </div>
+      </div>
+      <div id="skinFetchStatus" style="font-size:11px;color:var(--text-mut);margin-top:6px"></div>
     </div>
     <div class="skin-lib-grid" id="skinLibGrid">
       <div class="lib-empty">No skins saved yet. Add some above!</div>
