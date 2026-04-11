@@ -197,6 +197,29 @@ body::before { content: ''; position: fixed; inset: 0; background: url("data:ima
 ::-webkit-scrollbar-thumb { background: rgba(140,110,220,0.15); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(140,110,220,0.3); }
 
+/* ── Banner Designer ── */
+.banner-layout { display: flex; gap: 14px; }
+.banner-preview-area { flex: 1; min-width: 0; }
+.banner-controls { width: 280px; flex-shrink: 0; }
+.banner-color-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.banner-color-swatch { width: 100%; aspect-ratio: 1; border: 2px solid transparent; border-radius: 4px; cursor: pointer; transition: all 0.12s; }
+.banner-color-swatch:hover { transform: scale(1.1); }
+.banner-color-swatch.active { border-color: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.3); }
+.banner-layer { display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 4px; }
+.banner-layer:hover { border-color: var(--border-hi); }
+.banner-layer-preview { width: 24px; height: 24px; image-rendering: pixelated; border-radius: 3px; }
+.banner-layer-name { flex: 1; font-size: 11px; color: var(--text-sec); }
+.banner-layer-color { width: 20px; height: 20px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; }
+.banner-layer-rm { background: none; border: none; color: var(--text-mut); cursor: pointer; font-size: 14px; }
+.banner-layer-rm:hover { color: var(--red); }
+.banner-layer-arrows { display: flex; flex-direction: column; gap: 1px; }
+.banner-layer-arrows button { background: none; border: none; color: var(--text-mut); cursor: pointer; font-size: 10px; padding: 0; line-height: 1; }
+.banner-layer-arrows button:hover { color: var(--text); }
+.banner-pattern-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; max-height: 300px; overflow-y: auto; }
+.banner-pattern-btn { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 4px; padding: 6px; text-align: center; cursor: pointer; transition: all 0.12s; font-size: 10px; color: var(--text-sec); }
+.banner-pattern-btn:hover { border-color: var(--border-hi); background: rgba(140,110,220,0.08); }
+@media(max-width:800px) { .banner-layout { flex-direction: column; } .banner-controls { width: 100%; } }
+
 /* ── Cape Editor ── */
 .ce-wrap { display: flex; gap: 14px; flex-wrap: wrap; }
 .ce-canvas-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }

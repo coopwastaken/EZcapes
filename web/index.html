@@ -26,10 +26,16 @@
       <button class="nav-tab active" data-page="builder"><span class="nav-icon">⚒️</span> Pack Builder</button>
       <button class="nav-tab" data-page="skins"><span class="nav-icon">🧍</span> Skin Library</button>
       <button class="nav-tab" data-page="capes"><span class="nav-icon">🧥</span> Cape Library</button>
+      <button class="nav-tab" data-page="banner"><span class="nav-icon">🏳️</span> Banner Designer</button>
       <button class="nav-tab" data-page="editor"><span class="nav-icon">✏️</span> Cape Editor</button>
       <button class="nav-tab" data-page="packs"><span class="nav-icon">📦</span> Saved Packs</button>
     </div>
-    <div class="sidebar-footer">EZCAPES v1.3.0 — mc-tools.net</div>
+    <div style="padding:4px 10px 8px">
+      <a href="https://ko-fi.com/coop6807" target="_blank" rel="noopener" class="nav-tab" style="text-decoration:none;display:flex;align-items:center;gap:10px;width:100%;color:var(--text-sec)"><span class="nav-icon">☕</span> Support Me</a>
+    </div>
+    <div class="sidebar-footer">
+      <div>EZCAPES v1.4.0 — mc-tools.net</div>
+    </div>
   </nav>
 
   <main class="main-content">
@@ -141,6 +147,65 @@
     </div>
   </div>
 
+  <!-- ═══ BANNER DESIGNER PAGE ═══ -->
+  <div class="page" id="page-banner">
+    <div class="page-header">
+      <h2>Banner Cape Designer</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-accent" id="bannerDownload">Download Cape</button>
+        <button class="btn btn-sm" id="bannerSaveLib">Save to Library</button>
+        <button class="btn btn-sm btn-danger" id="bannerClear">Clear</button>
+      </div>
+    </div>
+    <div class="banner-layout">
+      <!-- Preview -->
+      <div class="banner-preview-area">
+        <div class="card">
+          <div class="card-label">Cape Preview</div>
+          <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:flex-start">
+            <div style="text-align:center">
+              <canvas id="bannerPreview" width="20" height="40" style="width:100px;height:200px;image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;background:#222"></canvas>
+              <div style="font-size:10px;color:var(--text-mut);margin-top:4px">Banner</div>
+            </div>
+            <div style="text-align:center">
+              <div id="banner3dCape" style="width:180px;height:240px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#111"></div>
+              <div style="font-size:10px;color:var(--text-mut);margin-top:4px">3D Cape</div>
+            </div>
+            <div style="text-align:center">
+              <div id="banner3dElytra" style="width:180px;height:240px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#111"></div>
+              <div style="font-size:10px;color:var(--text-mut);margin-top:4px">3D Elytra</div>
+            </div>
+          </div>
+          <canvas id="bannerElytraPreview" width="22" height="20" style="display:none"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-label">Full Cape Texture</div>
+          <canvas id="bannerFullCape" width="64" height="32" style="width:100%;max-width:384px;image-rendering:pixelated;border:1px solid var(--border);border-radius:6px;background:#222;display:block;margin:0 auto"></canvas>
+        </div>
+      </div>
+      <!-- Controls -->
+      <div class="banner-controls">
+        <div class="card">
+          <div class="card-label">Banner Base Color</div>
+          <div class="banner-color-grid" id="bannerBaseColors"></div>
+        </div>
+        <div class="card">
+          <div class="card-label">Cape Color (sides, edges, back)</div>
+          <div class="banner-color-grid" id="bannerCapeColors"></div>
+        </div>
+        <div class="card">
+          <div class="card-label">Layers</div>
+          <div id="bannerLayers"></div>
+          <button class="btn btn-sm" id="bannerAddLayer" style="margin-top:8px;width:100%">+ Add Pattern Layer</button>
+        </div>
+        <div class="card" id="bannerPatternPicker" style="display:none">
+          <div class="card-label">Pick Pattern</div>
+          <div class="banner-pattern-grid" id="bannerPatterns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ CAPE EDITOR PAGE ═══ -->
   <div class="page" id="page-editor">
     <div class="page-header">
@@ -159,6 +224,7 @@
         <div class="ce-view-toggle">
           <button class="ce-view-btn active" data-ceview="2d">2D Editor</button>
           <button class="ce-view-btn" data-ceview="3d">3D Cape</button>
+          <button class="ce-view-btn" data-ceview="elytra">3D Elytra</button>
         </div>
         <!-- 2D Editor View -->
         <div id="ceView2D">
@@ -194,6 +260,13 @@
               <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-sec);cursor:pointer"><input type="checkbox" id="ce3dAutoRotate" style="accent-color:var(--accent)"> Auto-rotate</label>
               <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-sec);cursor:pointer"><input type="checkbox" id="ce3dShowBack" checked style="accent-color:var(--accent)"> Show player</label>
             </div>
+          </div>
+        </div>
+        <!-- 3D Elytra View -->
+        <div id="ceViewElytra" style="display:none">
+          <div class="card" style="padding:12px"><div class="card-label">3D Elytra Preview</div>
+            <div id="ce3dElytraWrap" style="width:100%;height:400px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#111"></div>
+            <div style="font-size:10px;color:var(--text-mut);text-align:center;margin-top:6px">drag to rotate</div>
           </div>
         </div>
       </div>
@@ -280,7 +353,9 @@
   </div>
 
   <script src="gallery.js"></script>
+  <script src="banner-masks.js"></script>
   <script src="app.js"></script>
+  <script src="banner-designer.js"></script>
   <script src="cape-editor.js"></script>
 </body>
 </html>

@@ -565,456 +565,65 @@ ceViewBtns.forEach(btn=>btn.addEventListener('click',()=>{
 }));
 
 /* ═══ 3D CAPE PREVIEW ═══ */
-var ce3d={inited:false,renderer:null,scene:null,camera:null,controls:null,capeMesh:null,playerGroup:null,texture:null,animId:null};
+var ce3d={inited:false,viewer:null};
 
 function ce3dInit(){
-  if(ce3d.inited){ce3dUpdateTexture();ce3dAnimate();return}
+  if(ce3d.inited){ce3dUpdateTexture();return}
   ce3d.inited=true;
-  const wrap=$('#ce3dWrap');
-  const canvas=$('#ce3dCanvas');
-  const ww=Math.min(wrap.clientWidth-6,500);
-  const hh=Math.max(350,Math.floor(ww*0.9));
-  canvas.width=ww;canvas.height=hh;
-
-  /* Renderer */
-  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
-  renderer.setSize(ww,hh);renderer.setClearColor(0x000000,0);
-  ce3d.renderer=renderer;
-
-  /* Scene */
-  const scene=new THREE.Scene();ce3d.scene=scene;
-
-  /* Camera */
-  const camera=new THREE.PerspectiveCamera(40,ww/hh,1,200);
-  camera.position.set(0,6,-38);camera.lookAt(0,2,0);
-  ce3d.camera=camera;
-
-  /* Controls */
-  const controls=new THREE.OrbitControls(camera,canvas);
-  controls.target.set(0,2,0);controls.enablePan=false;
-  controls.enableDamping=true;controls.dampingFactor=0.1;
-  controls.minDistance=10;controls.maxDistance=60;
-  controls.autoRotate=false;controls.autoRotateSpeed=2;
-  ce3d.controls=controls;
-
-  /* Lights */
-  scene.add(new THREE.AmbientLight(0xffffff,0.65));
-  const dl=new THREE.DirectionalLight(0xffffff,0.8);dl.position.set(10,15,20);scene.add(dl);
-  const bl=new THREE.DirectionalLight(0xffffff,0.3);bl.position.set(-10,5,-15);scene.add(bl);
-
-  /* Texture from 2D canvas */
-  const tex=new THREE.CanvasTexture(cvs);
-  tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;tex.generateMipmaps=false;
-  ce3d.texture=tex;
-
-  /* Build cape + player */
-  ce3dBuildScene();
-
-  /* Raycaster for 3D painting */
-  ce3d.raycaster=new THREE.Raycaster();
-  ce3d.mouse=new THREE.Vector2();
-  ce3d.painting3d=false;
-  ce3d.rightClick3d=false;
-
-  /* 3D paint helpers */
-  function ce3dGetHit(clientX,clientY){
-    const rect=canvas.getBoundingClientRect();
-    ce3d.mouse.x=((clientX-rect.left)/rect.width)*2-1;
-    ce3d.mouse.y=-((clientY-rect.top)/rect.height)*2+1;
-    ce3d.raycaster.setFromCamera(ce3d.mouse,camera);
-    const hits=ce3d.raycaster.intersectObject(ce3d.capeMesh);
-    if(!hits.length||!hits[0].uv)return null;
-    const uv=hits[0].uv;
-    const px=Math.max(0,Math.min(W-1,Math.floor(uv.x*W)));
-    const py=Math.max(0,Math.min(H-1,Math.floor((1-uv.y)*H)));
-    return{x:px,y:py}
-  }
-  function ce3dPaintAt(clientX,clientY,erase){
-    const hit=ce3dGetHit(clientX,clientY);if(!hit)return;
-    if(erase||CE.tool==='eraser')ceErasePixel(hit.x,hit.y);
-    else if(CE.tool==='fill'){ceFill(hit.x,hit.y);ceSnapshot()}
-    else if(CE.tool==='replace'){ceHueReplace(hit.x,hit.y);ceSnapshot()}
-    else if(CE.tool==='picker'){
-      const p=ctx.getImageData(hit.x,hit.y,1,1).data;
-      CE.color=[p[0],p[1],p[2],p[3]];
-      const hex='#'+[p[0],p[1],p[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
-      $('#ceColor').value=hex;ceUpdatePalette(hex)
-    }
-    else ceSetPixel(hit.x,hit.y);
-    ceComposite();ce3dUpdateTexture()
-  }
-
-  /* Gradient state for 3D */
-  ce3d.gradStart=null;ce3d.gradEnd=null;
-
-  canvas.addEventListener('contextmenu',e=>e.preventDefault());
-  canvas.addEventListener('pointerdown',e=>{
-    const hit=ce3dGetHit(e.clientX,e.clientY);
-    if(!hit)return;/* no cape hit, let orbit controls handle it */
-    ce3d.painting3d=true;ce3d.rightClick3d=e.button===2;
-    controls.enabled=false;
-    if(CE.tool==='gradient'&&!ce3d.rightClick3d){
-      ce3d.gradStart=hit;ce3d.gradEnd=hit;return
-    }
-    ce3dPaintAt(e.clientX,e.clientY,ce3d.rightClick3d)
-  });
-  canvas.addEventListener('pointermove',e=>{
-    if(!ce3d.painting3d)return;
-    if(CE.tool==='gradient'&&ce3d.gradStart){
-      const hit=ce3dGetHit(e.clientX,e.clientY);
-      if(hit)ce3d.gradEnd=hit;
-      return
-    }
-    ce3dPaintAt(e.clientX,e.clientY,ce3d.rightClick3d)
-  });
-  canvas.addEventListener('pointerup',e=>{
-    if(ce3d.painting3d){
-      if(CE.tool==='gradient'&&ce3d.gradStart&&ce3d.gradEnd){
-        const s=ce3d.gradStart,en=ce3d.gradEnd;
-        const sx=Math.min(s.x,en.x),sy=Math.min(s.y,en.y);
-        const ex=Math.max(s.x,en.x),ey=Math.max(s.y,en.y);
-        if(ex>sx||ey>sy){
-          CE.selection={x:sx,y:sy,w:ex-sx+1,h:ey-sy+1};
-          ceApplyGradient(s.x,s.y,en.x,en.y);
-          CE.selection=null
-        }
-        ce3d.gradStart=null;ce3d.gradEnd=null;
-        ceSnapshot()
-      }
-      ce3d.painting3d=false;controls.enabled=true;
-      if(CE.tool!=='fill'&&CE.tool!=='picker'&&CE.tool!=='replace'&&CE.tool!=='gradient')ceSnapshot()
-    }
-  });
-
-  /* 3D undo/redo — same history as 2D */
-  $('#ce3dUndo').addEventListener('click',()=>{ceUndo();ce3dUpdateTexture()});
-  $('#ce3dRedo').addEventListener('click',()=>{ceRedo();ce3dUpdateTexture()});
-
-  /* Auto-rotate toggle */
-  $('#ce3dAutoRotate').addEventListener('change',e=>{controls.autoRotate=e.target.checked});
-
-  /* Show player toggle */
-  $('#ce3dShowBack').addEventListener('change',e=>{if(ce3d.playerGroup)ce3d.playerGroup.visible=e.target.checked});
-
-  /* Resize */
-  window.addEventListener('resize',()=>{
-    if($('#ceView3D').style.display==='none')return;
-    const nw=Math.min(wrap.clientWidth-6,500);
-    const nh=Math.max(350,Math.floor(nw*0.9));
-    renderer.setSize(nw,nh);camera.aspect=nw/nh;camera.updateProjectionMatrix()
-  });
-
-  ce3dAnimate()
+  var wrap=document.getElementById('ce3dWrap');
+  if(!wrap)return;
+  try{
+    ce3d.viewer=new skinview3d.SkinViewer({
+      canvas:document.createElement('canvas'),
+      width:wrap.clientWidth||500,height:Math.max(350,Math.floor((wrap.clientWidth||500)*0.9)),
+      skin:'https://minotar.net/skin/Coop6807'
+    });
+    ce3d.viewer.autoRotate=false;
+    ce3d.viewer.camera.position.set(0,10,38);
+    ce3d.viewer.animation=new skinview3d.IdleAnimation();
+    wrap.innerHTML='';
+    wrap.appendChild(ce3d.viewer.canvas);
+    ce3dUpdateTexture();
+  }catch(e){console.warn('skinview3d cape error:',e)}
+  var undoBtn=document.getElementById('ce3dUndo');
+  var redoBtn=document.getElementById('ce3dRedo');
+  if(undoBtn)undoBtn.addEventListener('click',function(){ceUndo();ce3dUpdateTexture()});
+  if(redoBtn)redoBtn.addEventListener('click',function(){ceRedo();ce3dUpdateTexture()});
 }
-
-function ce3dBuildScene(){
-  const tex=ce3d.texture;
-  const scene=ce3d.scene;
-
-  /* ─── Cape mesh: box approximation ───
-     Minecraft cape UV (64×32): Back face at (1,1)-(11,17), 10px wide × 16px tall
-     We build a thin box: 10 wide × 16 tall × 1 deep, UV-mapped to the cape texture */
-  const capeW=10,capeH=16,capeD=1;
-  const geo=new THREE.BoxGeometry(capeW,capeH,capeD);
-
-  /* UV mapping for box faces — order: +x, -x, +y, -y, +z, -z */
-  const uvAttr=geo.getAttribute('uv');/* was geo.attributes.uv in newer Three */
-  const u=uvAttr||geo.faceVertexUvs;
-  /* Three.js r128 BoxGeometry face order: +x(right), -x(left), +y(top), -y(bottom), +z(front), -z(back) */
-  /* Each face = 4 vertices (2 triangles) = indices [0..3], [4..7], ... */
-  /* Cape UV layout (64×32):
-     Cols 0: left side (1px wide)
-     Cols 1-10: back face (10px wide)  row 1-16
-     Col 11: right side (1px wide)
-     Cols 12-21: front face (10px wide) row 1-16
-     Row 0, cols 1-10: top edge
-     Row 0, cols 11-20: bottom edge
-  */
-  const tw=64,th=32;
-  function setFaceUV(faceIdx,x0,y0,x1,y1){
-    /* faceIdx: 0-5 for box faces, each has 4 UV coords */
-    const base=faceIdx*4;
-    const u0=x0/tw,v0=1-y0/th,u1=x1/tw,v1=1-y1/th;
-    uvAttr.setXY(base,u0,v0);   /* top-left */
-    uvAttr.setXY(base+1,u1,v0); /* top-right */
-    uvAttr.setXY(base+2,u0,v1); /* bottom-left */
-    uvAttr.setXY(base+3,u1,v1); /* bottom-right */
-  }
-  /* +x = right side: col 11, rows 1-17 */
-  setFaceUV(0,11,1,12,17);
-  /* -x = left side: col 0, rows 1-17 */
-  setFaceUV(1,0,1,1,17);
-  /* +y = top edge: cols 1-11, row 0-1 */
-  setFaceUV(2,1,0,11,1);
-  /* -y = bottom edge: cols 11-21, row 0-1 */
-  setFaceUV(3,11,0,21,1);
-  /* +z = front (inner face): cols 12-22, rows 1-17 */
-  setFaceUV(4,12,1,22,17);
-  /* -z = back (visible face): cols 1-11, rows 1-17 */
-  setFaceUV(5,1,1,11,17);
-  uvAttr.needsUpdate=true;
-
-  const mat=new THREE.MeshLambertMaterial({map:tex,transparent:true,alphaTest:0.01,side:THREE.DoubleSide});
-  const capeMesh=new THREE.Mesh(geo,mat);
-  /* Cape hangs from neck: top of body is y=10, cape is 16 tall so center = y=10-8=2
-     Body is 4 deep, half = 2, so back surface is z=-2. Offset cape behind that. */
-  capeMesh.position.set(0,2,-3);
-  /* Slight tilt outward like in-game (tilts bottom away from body) */
-  capeMesh.rotation.x=0.12;
-  ce3d.capeMesh=capeMesh;
-  scene.add(capeMesh);
-
-  /* ─── Pixel grid lines on all cape faces ─── */
-  const gridPts=[];
-  const cW=10,cH=16,cD=1,hW=cW/2,hH=cH/2,hD=cD/2;
-  const o=0.01;/* slight offset to prevent z-fighting */
-  /* Back face (10x16): z = -hD-o */
-  for(let i=0;i<=cW;i++){const x=-hW+i;gridPts.push(x,hH,-hD-o,x,-hH,-hD-o)}
-  for(let i=0;i<=cH;i++){const y=hH-i;gridPts.push(-hW,y,-hD-o,hW,y,-hD-o)}
-  /* Front face (10x16): z = +hD+o */
-  for(let i=0;i<=cW;i++){const x=-hW+i;gridPts.push(x,hH,hD+o,x,-hH,hD+o)}
-  for(let i=0;i<=cH;i++){const y=hH-i;gridPts.push(-hW,y,hD+o,hW,y,hD+o)}
-  /* Top face (10x1): y = +hH+o */
-  for(let i=0;i<=cW;i++){const x=-hW+i;gridPts.push(x,hH+o,-hD,x,hH+o,hD)}
-  for(let i=0;i<=cD;i++){const z=-hD+i;gridPts.push(-hW,hH+o,z,hW,hH+o,z)}
-  /* Bottom face (10x1): y = -hH-o */
-  for(let i=0;i<=cW;i++){const x=-hW+i;gridPts.push(x,-hH-o,-hD,x,-hH-o,hD)}
-  for(let i=0;i<=cD;i++){const z=-hD+i;gridPts.push(-hW,-hH-o,z,hW,-hH-o,z)}
-  /* Left face (1x16): x = -hW-o */
-  for(let i=0;i<=cD;i++){const z=-hD+i;gridPts.push(-hW-o,hH,z,-hW-o,-hH,z)}
-  for(let i=0;i<=cH;i++){const y=hH-i;gridPts.push(-hW-o,y,-hD,-hW-o,y,hD)}
-  /* Right face (1x16): x = +hW+o */
-  for(let i=0;i<=cD;i++){const z=-hD+i;gridPts.push(hW+o,hH,z,hW+o,-hH,z)}
-  for(let i=0;i<=cH;i++){const y=hH-i;gridPts.push(hW+o,y,-hD,hW+o,y,hD)}
-
-  const gridGeo=new THREE.BufferGeometry();
-  gridGeo.setAttribute('position',new THREE.Float32BufferAttribute(gridPts,3));
-  const gridLineMat=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.15,depthTest:true});
-  const gridLines=new THREE.LineSegments(gridGeo,gridLineMat);
-  gridLines.position.copy(capeMesh.position);
-  gridLines.rotation.copy(capeMesh.rotation);
-  ce3d.gridLines=gridLines;
-  scene.add(gridLines);
-
-  /* ─── Simple player silhouette (so cape has context) ─── */
-  const pGroup=new THREE.Group();
-  const pMat=new THREE.MeshLambertMaterial({color:0x555566,transparent:true,opacity:0.5});
-  /* Head */
-  const head=new THREE.Mesh(new THREE.BoxGeometry(8,8,8),pMat);head.position.set(0,14,0);pGroup.add(head);
-  /* Body */
-  const body=new THREE.Mesh(new THREE.BoxGeometry(8,12,4),pMat);body.position.set(0,4,0);pGroup.add(body);
-  /* Arms */
-  const rArm=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),pMat);rArm.position.set(-6,4,0);pGroup.add(rArm);
-  const lArm=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),pMat);lArm.position.set(6,4,0);pGroup.add(lArm);
-  /* Legs */
-  const rLeg=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),pMat);rLeg.position.set(-2,-8,0);pGroup.add(rLeg);
-  const lLeg=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),pMat);lLeg.position.set(2,-8,0);pGroup.add(lLeg);
-  ce3d.playerGroup=pGroup;
-  scene.add(pGroup);
-}
-
 function ce3dUpdateTexture(){
-  if(!ce3d||!ce3d.texture)return;
-  ce3d.texture.needsUpdate=true;
+  if(!ce3d||!ce3d.viewer)return;
+  try{ce3d.viewer.loadCape(cvs.toDataURL('image/png'),{backEquipment:'cape'})}catch(e){}
 }
-
-function ce3dAnimate(){
-  if($('#ceView3D').style.display==='none'){ce3d.animId=null;return}
-  ce3d.animId=requestAnimationFrame(ce3dAnimate);
-  ce3d.controls.update();
-  ce3d.renderer.render(ce3d.scene,ce3d.camera);
-}
+function ce3dAnimate(){}
 
 /* ═══ 3D ELYTRA VIEWER ═══ */
 const ceEly={inited:false,renderer:null,scene:null,camera:null,controls:null,leftWing:null,rightWing:null,playerGroup:null,texture:null,animId:null,raycaster:null,mouse:null,painting:false,rightClick:false};
 
 function ceElyInit(){
-  if(ceEly.inited){ceElyUpdateTex();ceElyAnimate();return}
+  if(ceEly.inited){ceElyUpdateTex();return}
   ceEly.inited=true;
-  const wrap=$('#ceElytraWrap'),canvas=$('#ceElytraCanvas');
-  const ww=Math.min(wrap.clientWidth-6,500),hh=Math.max(350,Math.floor(ww*0.9));
-  canvas.width=ww;canvas.height=hh;
-
-  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
-  renderer.setSize(ww,hh);renderer.setClearColor(0x000000,0);ceEly.renderer=renderer;
-
-  const scene=new THREE.Scene();ceEly.scene=scene;
-  const camera=new THREE.PerspectiveCamera(40,ww/hh,1,200);
-  camera.position.set(0,4,-35);camera.lookAt(0,0,0);ceEly.camera=camera;
-
-  const controls=new THREE.OrbitControls(camera,canvas);
-  controls.target.set(0,0,0);controls.enablePan=false;
-  controls.enableDamping=true;controls.dampingFactor=0.1;
-  controls.minDistance=10;controls.maxDistance=60;
-  controls.autoRotate=false;controls.autoRotateSpeed=2;ceEly.controls=controls;
-
-  scene.add(new THREE.AmbientLight(0xffffff,0.65));
-  const dl=new THREE.DirectionalLight(0xffffff,0.8);dl.position.set(10,15,20);scene.add(dl);
-  const bl=new THREE.DirectionalLight(0xffffff,0.3);bl.position.set(-10,5,-15);scene.add(bl);
-
-  const tex=new THREE.CanvasTexture(cvs);
-  tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;tex.generateMipmaps=false;
-  ceEly.texture=tex;
-
-  /* ─── Elytra wings ─── */
-  const wingW=10,wingH=20,wingD=0.5;
-  const tw=64,th=32;
-
-  function makeWing(uvX,uvY,uvW,uvH){
-    /* PlaneGeometry for a flat wing — simpler UV mapping */
-    const geo=new THREE.PlaneGeometry(wingW,wingH);
-    const uv=geo.getAttribute('uv');
-    const u0=uvX/tw,u1=(uvX+uvW)/tw;
-    const v0=1-uvY/th,v1=1-(uvY+uvH)/th;
-    /* PlaneGeometry has 4 verts: top-left(0,1), top-right(1,1), bottom-left(0,0), bottom-right(1,0) */
-    /* Flip horizontally so texture reads correctly on the wings */
-    uv.setXY(0,u1,v0);/* top-left gets right edge */
-    uv.setXY(1,u0,v0);/* top-right gets left edge */
-    uv.setXY(2,u1,v1);/* bottom-left */
-    uv.setXY(3,u0,v1);/* bottom-right */
-    uv.needsUpdate=true;
-    const mat=new THREE.MeshLambertMaterial({map:tex,transparent:true,alphaTest:0.01,side:THREE.DoubleSide});
-    return new THREE.Mesh(geo,mat)
-  }
-
-  /* Left wing UV at (34,2) 10x20 */
-  const leftWing=makeWing(34,2,10,20);
-  /* Right wing mirrors left — same UV but flipped horizontally */
-  const rightWing=makeWing(34,2,10,20);
-  rightWing.scale.x=-1;/* mirror */
-
-  /* Pivot wings from their top-inner edge for deployed/crouched pose */
-  /* Shift geometry so pivot is at top edge, inner side */
-  leftWing.geometry.translate(wingW/2,-wingH/2,0);
-  rightWing.geometry.translate(wingW/2,-wingH/2,0);/* before mirror, so inner edge */
-
-  /* Crouched elytra: wings physically overlap at center — close positions, moderate angle */
-  leftWing.position.set(-2,10,-1.8);
-  leftWing.rotation.set(0.65,0.15,0.45);
-
-  rightWing.position.set(2,10,-2.2);
-  rightWing.rotation.set(0.65,-0.15,-0.45);
-
-  ceEly.leftWing=leftWing;ceEly.rightWing=rightWing;
-  scene.add(leftWing);scene.add(rightWing);
-
-  /* Grid lines on wings — aligned to the plane geometry */
-  function addWingGrid(wing,w,h,mirror){
-    const pts=[];
-    /* After translate: geometry goes from x=0 to x=w, y=0 to y=-h */
-    for(let i=0;i<=w;i++){const x=i;pts.push(x,0,0.01,x,-h,0.01)}
-    for(let i=0;i<=h;i++){const y=-i;pts.push(0,y,0.01,w,y,0.01)}
-    const geo=new THREE.BufferGeometry();
-    geo.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
-    const lines=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.15}));
-    wing.add(lines)
-  }
-  addWingGrid(leftWing,wingW,wingH,false);
-  addWingGrid(rightWing,wingW,wingH,true);
-
-  /* Player silhouette (crouched) */
-  const pGroup=new THREE.Group();
-  const pMat=new THREE.MeshLambertMaterial({color:0x555566,transparent:true,opacity:0.5});
-  const head=new THREE.Mesh(new THREE.BoxGeometry(8,8,8),pMat);head.position.set(0,14,4);head.rotation.x=0.4;pGroup.add(head);
-  const body=new THREE.Mesh(new THREE.BoxGeometry(8,12,4),pMat);body.position.set(0,6,2);body.rotation.x=0.5;pGroup.add(body);
-  const rArm=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),pMat);rArm.position.set(-6,6,2);rArm.rotation.x=0.5;pGroup.add(rArm);
-  const lArm=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),pMat);lArm.position.set(6,6,2);lArm.rotation.x=0.5;pGroup.add(lArm);
-  const rLeg=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),pMat);rLeg.position.set(-2,-6,0);pGroup.add(rLeg);
-  const lLeg=new THREE.Mesh(new THREE.BoxGeometry(4,12,4),pMat);lLeg.position.set(2,-6,0);pGroup.add(lLeg);
-  ceEly.playerGroup=pGroup;scene.add(pGroup);
-
-  /* Raycaster for painting */
-  ceEly.raycaster=new THREE.Raycaster();ceEly.mouse=new THREE.Vector2();
-
-  function ceElyGetHit(cx,cy){
-    const rect=canvas.getBoundingClientRect();
-    ceEly.mouse.x=((cx-rect.left)/rect.width)*2-1;
-    ceEly.mouse.y=-((cy-rect.top)/rect.height)*2+1;
-    ceEly.raycaster.setFromCamera(ceEly.mouse,camera);
-    const hits=ceEly.raycaster.intersectObjects([leftWing,rightWing]);
-    if(!hits.length||!hits[0].uv)return null;
-    const uv=hits[0].uv;
-    const px=Math.max(0,Math.min(W-1,Math.floor(uv.x*W)));
-    const py=Math.max(0,Math.min(H-1,Math.floor((1-uv.y)*H)));
-    return{x:px,y:py}
-  }
-  function ceElyPaintAt(cx,cy,erase){
-    const hit=ceElyGetHit(cx,cy);if(!hit)return;
-    if(erase||CE.tool==='eraser')ceErasePixel(hit.x,hit.y);
-    else if(CE.tool==='fill'){ceFill(hit.x,hit.y);ceSnapshot()}
-    else if(CE.tool==='replace'){ceHueReplace(hit.x,hit.y);ceSnapshot()}
-    else if(CE.tool==='picker'){
-      const p=ctx.getImageData(hit.x,hit.y,1,1).data;
-      CE.color=[p[0],p[1],p[2],p[3]];
-      const hex='#'+[p[0],p[1],p[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
-      $('#ceColor').value=hex;ceUpdatePalette(hex)
-    }
-    else ceSetPixel(hit.x,hit.y);
-    ceComposite();ceElyUpdateTex()
-  }
-
-  ceEly.gradStart=null;ceEly.gradEnd=null;
-
-  canvas.addEventListener('contextmenu',e=>e.preventDefault());
-  canvas.addEventListener('pointerdown',e=>{
-    const hit=ceElyGetHit(e.clientX,e.clientY);
-    if(!hit)return;
-    ceEly.painting=true;ceEly.rightClick=e.button===2;
-    controls.enabled=false;
-    if(CE.tool==='gradient'&&!ceEly.rightClick){
-      ceEly.gradStart=hit;ceEly.gradEnd=hit;return
-    }
-    ceElyPaintAt(e.clientX,e.clientY,ceEly.rightClick)
-  });
-  canvas.addEventListener('pointermove',e=>{
-    if(!ceEly.painting)return;
-    if(CE.tool==='gradient'&&ceEly.gradStart){
-      const hit=ceElyGetHit(e.clientX,e.clientY);
-      if(hit)ceEly.gradEnd=hit;
-      return
-    }
-    ceElyPaintAt(e.clientX,e.clientY,ceEly.rightClick)
-  });
-  canvas.addEventListener('pointerup',()=>{
-    if(ceEly.painting){
-      if(CE.tool==='gradient'&&ceEly.gradStart&&ceEly.gradEnd){
-        const s=ceEly.gradStart,en=ceEly.gradEnd;
-        const sx=Math.min(s.x,en.x),sy=Math.min(s.y,en.y);
-        const ex=Math.max(s.x,en.x),ey=Math.max(s.y,en.y);
-        if(ex>sx||ey>sy){
-          CE.selection={x:sx,y:sy,w:ex-sx+1,h:ey-sy+1};
-          ceApplyGradient(s.x,s.y,en.x,en.y);
-          CE.selection=null
-        }
-        ceEly.gradStart=null;ceEly.gradEnd=null;
-        ceSnapshot()
-      }
-      ceEly.painting=false;controls.enabled=true;
-      if(CE.tool!=='fill'&&CE.tool!=='picker'&&CE.tool!=='replace'&&CE.tool!=='gradient')ceSnapshot()
-    }
-  });
-
-  $('#ceElyUndo').addEventListener('click',()=>{ceUndo();ceElyUpdateTex()});
-  $('#ceElyRedo').addEventListener('click',()=>{ceRedo();ceElyUpdateTex()});
-  $('#ceElyAutoRotate').addEventListener('change',e=>{controls.autoRotate=e.target.checked});
-  $('#ceElyShowPlayer').addEventListener('change',e=>{pGroup.visible=e.target.checked});
-
-  window.addEventListener('resize',()=>{
-    var elyEl=$('#ceViewElytra');if(!elyEl||elyEl.style.display==='none')return;
-    const nw=Math.min(wrap.clientWidth-6,500),nh=Math.max(350,Math.floor(nw*0.9));
-    renderer.setSize(nw,nh);camera.aspect=nw/nh;camera.updateProjectionMatrix()
-  });
-
-  ceElyAnimate()
+  var wrap=document.getElementById('ce3dElytraWrap');
+  if(!wrap)return;
+  try{
+    ceEly.viewer=new skinview3d.SkinViewer({
+      canvas:document.createElement('canvas'),
+      width:wrap.clientWidth||400,height:400,
+      skin:'https://minotar.net/skin/Coop6807'
+    });
+    ceEly.viewer.autoRotate=false;
+    ceEly.viewer.camera.position.set(0,10,38);
+    ceEly.viewer.animation=new skinview3d.IdleAnimation();
+    wrap.innerHTML='';
+    wrap.appendChild(ceEly.viewer.canvas);
+    ceElyUpdateTex();
+  }catch(e){console.warn('skinview3d elytra error:',e)}
 }
 
-function ceElyUpdateTex(){if(ceEly.texture)ceEly.texture.needsUpdate=true}
-function ceElyAnimate(){
-  var elyEl2=$('#ceViewElytra');if(!elyEl2||elyEl2.style.display==='none'){ceEly.animId=null;return}
-  ceEly.animId=requestAnimationFrame(ceElyAnimate);
-  ceEly.controls.update();ceEly.renderer.render(ceEly.scene,ceEly.camera)
+function ceElyUpdateTex(){
+  if(!ceEly||!ceEly.viewer)return;
+  try{ceEly.viewer.loadCape(cvs.toDataURL('image/png'),{backEquipment:'elytra'})}catch(e){}
 }
-
+function ceElyAnimate(){}
 /* Update 3D preview whenever the 2D canvas changes */
 const ce3dOrigSnapshot=ceSnapshot;
 ceSnapshot=function(){
@@ -1047,3 +656,4 @@ if(typeof toast==="function") toast("Saved to cape library!");
 }
 });
 }();
+
