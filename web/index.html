@@ -34,7 +34,7 @@
       <a href="https://ko-fi.com/coop6807" target="_blank" rel="noopener" class="nav-tab" style="text-decoration:none;display:flex;align-items:center;gap:10px;width:100%;color:var(--text-sec)"><span class="nav-icon">☕</span> Support Me</a>
     </div>
     <div class="sidebar-footer">
-      <div>EZCAPES v1.4.1 — mc-tools.net</div>
+      <div>EZCAPES v1.5.0 — mc-tools.net</div>
     </div>
   </nav>
 
@@ -48,17 +48,25 @@
       <button class="btn btn-accent" id="btnBuild" disabled>Build & Apply</button>
     </div>
 
+    <!-- Pack Settings + Shockbyte side by side -->
+    <div style="display:flex;gap:12px;margin-bottom:10px;align-items:stretch">
+      <div class="card" style="flex:1;margin-bottom:0;padding:14px">
+        <div class="card-label" style="margin-bottom:8px;padding-bottom:6px">Pack Settings</div>
+        <div class="row">
+          <div class="field"><label>Pack Name</label><input type="text" id="packName" placeholder="My Cape Pack" maxlength="80"></div>
+          <div class="field" style="max-width:120px"><label>Version</label><input type="text" id="packVer" value="1.0.0" maxlength="12"></div>
+        </div>
+        <div class="field"><label>Description</label><input type="text" id="packDesc" placeholder="Custom capes for Bedrock" maxlength="256"></div>
+      </div>
+      <!-- Shockbyte affiliate -->
+      <a href="https://shockbyte.com/billing/aff.php?aff=11200" target="_blank" rel="noopener sponsored" style="display:flex;align-items:center;justify-content:center;flex-shrink:0;width:220px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:var(--card-bg);padding:16px;transition:border-color 0.15s">
+        <img src="https://shockbyte.com/assets/img/partners/twitch/shockbyte_affiliate.png" alt="Minecraft Server Hosting" style="width:100%;display:block">
+      </a>
+    </div>
+
     <div class="grid-2">
       <!-- Left column -->
       <div>
-        <div class="card">
-          <div class="card-label">Pack Settings</div>
-          <div class="row">
-            <div class="field"><label>Pack Name</label><input type="text" id="packName" placeholder="My Cape Pack" maxlength="80"></div>
-            <div class="field" style="max-width:120px"><label>Version</label><input type="text" id="packVer" value="1.0.0" maxlength="12"></div>
-          </div>
-          <div class="field"><label>Description</label><input type="text" id="packDesc" placeholder="Custom capes for Bedrock" maxlength="256"></div>
-        </div>
 
         <div class="card">
           <div class="card-label">Skins</div>

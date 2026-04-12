@@ -297,7 +297,7 @@ function update3DViewers(capeDataURL) {
         skin: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARzQklUCAgICHwIZIgAAAGcSURBVHic7doxTgMxEIXhNwkSHIBrcAJOwY24CReghIICUVBQICQKKKCg2GLXxvZ4PPP/0iqKdlfyfPHa2U0BAAAAAAAAAHSy2voCAjiq/8HzJElnO/l5eby3sfu+Wrys3Vkxvsqb/f4y+Yr3kgP+OuSCvbdL+nGQ3JxPj6T00MNl7Yz6W79aHp43Sn2Bxk8e6u8LNH4igLNA4wgAowDAA5Aet/Y+OkAngcgJQGAByC9HwAAAADQywCklwMAegAAAAAAAADK+wGkJACeTh+vJJ1J3lM/ZHt/tS4qz9fYe9p5TZKulXhJ31M/Ar/r3yJp3/i2+3LjD+XC6VHt5GYfx/0bGNQC1GAAA6B6DOABSO8HAPR+AAAAAADQywCklwMAejoAAAAAAKC8H0BKAgAAAAAAAADK+wGkJAAetx8vJZ1LftM+0NZv+0f6dvC8dhIv0PRLM1mC5jOlV7qx9o7A+sH2Ov/18K94L1EPkDgeQ3gf+FEEAH9jPQf8/gCklwMAegAAAPQyAOnlAAAAAICe/gJJu/gGzz61GAAAAABJRU5ErkJggg=='
       });
       banner3dCapeViewer.autoRotate = false;
-      banner3dCapeViewer.camera.position.set(0, 10, 38);
+      banner3dCapeViewer.camera.position.set(0, 10, -38);
       banner3dCapeViewer.animation = new skinview3d.IdleAnimation();
       capeWrap.innerHTML = '';
       capeWrap.appendChild(banner3dCapeViewer.canvas);
@@ -312,7 +312,7 @@ function update3DViewers(capeDataURL) {
         skin: 'https://minotar.net/skin/Coop6807'
       });
       banner3dElytraViewer.autoRotate = false;
-      banner3dElytraViewer.camera.position.set(0, 10, 38);
+      banner3dElytraViewer.camera.position.set(0, 10, -38);
       banner3dElytraViewer.animation = new skinview3d.IdleAnimation();
       elyWrap.innerHTML = '';
       elyWrap.appendChild(banner3dElytraViewer.canvas);
