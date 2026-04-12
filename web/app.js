@@ -641,7 +641,8 @@ function setupSkinLibPage() {
     const result = edition === 'bedrock' ? await fetchBedrockSkin(name, fetchStatus) : await fetchSkinByName(name, fetchStatus);
     if (result) {
       addSkin(result.dataURL, name);
-      renderSkinLibPage();
+      // Delay render to let addSkin's async image load + saveSkinToLib finish
+      setTimeout(() => renderSkinLibPage(), 1500);
       toast('Added ' + name);
       fetchInput.value = '';
     }

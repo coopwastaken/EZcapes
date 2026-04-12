@@ -18,7 +18,7 @@
   <!-- Sidebar Nav -->
   <nav class="sidebar-nav">
     <div class="sidebar-brand">
-      <div class="brand-name">EZCAPES</div>
+      <img src="logo.png" alt="EZCAPES" style="height:48px;image-rendering:pixelated;display:block;margin-left:-14px">
       <div class="brand-sub">by mc-tools.net</div>
     </div>
     <div class="sidebar-profiles" id="sidebarProfiles"></div>
@@ -44,8 +44,10 @@
   <div class="page active" id="page-builder">
     <div class="page-header">
       <h2>Build Cape Pack</h2>
-      <button class="btn btn-sm" id="btnStartCurrent" style="margin-right:4px">Start from Current</button>
-      <button class="btn btn-accent" id="btnBuild" disabled>Build & Apply</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" id="btnStartCurrent">Start from Current</button>
+        <button class="btn btn-accent" id="btnBuild" disabled>Build & Apply</button>
+      </div>
     </div>
 
     <!-- Pack Settings + Shockbyte side by side -->
