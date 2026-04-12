@@ -39,7 +39,7 @@ app.whenReady().then(() => {
   ensureDirs();
   createWindow();
 
-  // Auto-update
+  // Auto-update — downloads and restarts automatically
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.checkForUpdatesAndNotify().catch(() => {});
@@ -48,7 +48,9 @@ app.whenReady().then(() => {
     if (mainWindow) mainWindow.webContents.executeJavaScript("typeof toast==='function'&&toast('Update available — downloading...')");
   });
   autoUpdater.on('update-downloaded', () => {
-    if (mainWindow) mainWindow.webContents.executeJavaScript("typeof toast==='function'&&toast('Update ready — will install on next restart')");
+    if (mainWindow) mainWindow.webContents.executeJavaScript("typeof toast==='function'&&toast('Installing update — restarting...')");
+    // Auto restart after a short delay so the user sees the toast
+    setTimeout(() => { autoUpdater.quitAndInstall(false, true); }, 2000);
   });
 });
 

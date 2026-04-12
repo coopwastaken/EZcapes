@@ -521,7 +521,10 @@ $('#ceImport').addEventListener('change',e=>{
   const r=new FileReader();r.onload=v=>{
     const img=new Image();img.onload=()=>{
       const lctx=ceGetActiveCtx();
-      lctx.clearRect(0,0,W,H);lctx.drawImage(img,0,0,W,H);ceComposite();ceSnapshot()
+      lctx.clearRect(0,0,W,H);
+      /* Draw at native size (handles 46x22 OptiFine capes and 64x32 standard) */
+      lctx.drawImage(img,0,0);
+      ceComposite();ceSnapshot()
     };img.src=v.target.result
   };r.readAsDataURL(f);e.target.value=''
 });

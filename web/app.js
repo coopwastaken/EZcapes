@@ -222,10 +222,20 @@ function addCape(dataURL, name, saveToLib) {
   const img = new Image();
   img.onload = () => {
     if (CB.capes.find(c => c.name.toLowerCase() === name.toLowerCase())) return;
+    let finalDataURL = dataURL;
+    // Auto-convert non-standard cape sizes to 64x32
+    if (img.width !== 64 || img.height !== 32) {
+      const cvs = document.createElement('canvas'); cvs.width = 64; cvs.height = 32;
+      const ctx = cvs.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      // Place at origin — cape/elytra UV regions stay in the same position
+      ctx.drawImage(img, 0, 0);
+      finalDataURL = cvs.toDataURL('image/png');
+    }
     const id = CB.nCapeId++;
-    CB.capes.push({ id, name, dataURL, w: img.width, h: img.height });
+    CB.capes.push({ id, name, dataURL: finalDataURL, w: 64, h: 32 });
     renderBuilderCapes(); renderAssignments(); updateBuildBtn();
-    if (saveToLib !== false) saveCapeToLib(name, dataURL);
+    if (saveToLib !== false) saveCapeToLib(name, finalDataURL);
   };
   img.src = dataURL;
 }
