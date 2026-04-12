@@ -640,9 +640,10 @@ function setupSkinLibPage() {
     fetchStatus.textContent = 'Fetching...'; fetchStatus.style.color = 'var(--text-mut)';
     const result = edition === 'bedrock' ? await fetchBedrockSkin(name, fetchStatus) : await fetchSkinByName(name, fetchStatus);
     if (result) {
+      // Save to library immediately (before async image validation in addSkin)
+      saveSkinToLib(name, result.dataURL, false, 64, 64);
       addSkin(result.dataURL, name);
-      // Delay render to let addSkin's async image load + saveSkinToLib finish
-      setTimeout(() => renderSkinLibPage(), 1500);
+      renderSkinLibPage();
       toast('Added ' + name);
       fetchInput.value = '';
     }
