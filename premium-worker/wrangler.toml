@@ -1,0 +1,10 @@
+name = "ezcapes-premium"
+main = "worker.js"
+compatibility_date = "2024-12-01"
+
+[[kv_namespaces]]
+binding = "EZCAPES_CODES"
+id = "b2e72238b2344e26a2d866cc15539051"
+
+[vars]
+ADMIN_SECRET = "ezcapes-admin-2026"
