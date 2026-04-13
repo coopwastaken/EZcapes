@@ -522,8 +522,21 @@ $('#ceImport').addEventListener('change',e=>{
     const img=new Image();img.onload=()=>{
       const lctx=ceGetActiveCtx();
       lctx.clearRect(0,0,W,H);
-      /* Draw at native size (handles 46x22 OptiFine capes and 64x32 standard) */
-      lctx.drawImage(img,0,0);
+      /* Auto-detect and scale to fit 64x32 editor canvas */
+      var iw=img.width,ih=img.height;
+      if(iw===64&&ih===32){
+        /* Standard 64x32 — draw as-is */
+        lctx.drawImage(img,0,0);
+      } else if(Math.abs(iw/ih-46/22)<0.15){
+        /* OptiFine ratio (46x22 or 92x44 etc) — scale to 46x22 and place at origin */
+        lctx.drawImage(img,0,0,iw,ih,0,0,46,22);
+      } else if(Math.abs(iw/ih-2)<0.15){
+        /* Standard ratio HD (128x64 etc) — scale to 64x32 */
+        lctx.drawImage(img,0,0,iw,ih,0,0,64,32);
+      } else {
+        /* Unknown — place at origin */
+        lctx.drawImage(img,0,0);
+      }
       ceComposite();ceSnapshot()
     };img.src=v.target.result
   };r.readAsDataURL(f);e.target.value=''

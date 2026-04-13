@@ -144,9 +144,23 @@
   <div class="page" id="page-capes">
     <div class="page-header">
       <h2>Cape Library</h2>
-      <div class="dropzone-inline" id="capeLibDropzone">
-        <input type="file" id="capeLibFileInput" multiple accept="image/png" style="display:none">
-        <button class="btn btn-accent">+ Add Capes</button>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <div class="dropzone-inline" id="capeLibDropzone">
+          <input type="file" id="capeLibFileInput" multiple accept="image/png" style="display:none">
+          <button class="btn btn-accent">+ Add Capes</button>
+        </div>
+        <button class="btn btn-sm" id="capePasteLinkBtn">Paste Link</button>
+      </div>
+    </div>
+    <!-- Link import dialog -->
+    <div id="capeLinkDialog" style="display:none;margin-bottom:12px">
+      <div class="card" style="padding:12px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" id="capeLinkInput" placeholder="Paste SkinMC cape URL" style="flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:var(--font);font-size:12px;outline:none">
+          <button class="btn btn-accent" id="capeLinkFetch" style="white-space:nowrap">Import</button>
+          <button class="btn btn-sm" id="capeLinkCancel">Cancel</button>
+        </div>
+        <div id="capeLinkStatus" style="font-size:11px;color:var(--text-mut);margin-top:6px"></div>
       </div>
     </div>
     <div class="cape-section-label">Built-in Capes</div>

@@ -223,17 +223,40 @@ function addCape(dataURL, name, saveToLib) {
   img.onload = () => {
     if (CB.capes.find(c => c.name.toLowerCase() === name.toLowerCase())) return;
     let finalDataURL = dataURL;
-    // Auto-convert non-standard cape sizes to 64x32
-    if (img.width !== 64 || img.height !== 32) {
+    let fw = img.width, fh = img.height;
+    let isHD = false;
+
+    if (fw === 64 && fh === 32) {
+      // Standard Bedrock — use as-is
+    } else if (fw === 46 && fh === 22) {
+      // OptiFine standard — place on 64x32
       const cvs = document.createElement('canvas'); cvs.width = 64; cvs.height = 32;
-      const ctx = cvs.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      // Place at origin — cape/elytra UV regions stay in the same position
+      const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
       ctx.drawImage(img, 0, 0);
-      finalDataURL = cvs.toDataURL('image/png');
+      finalDataURL = cvs.toDataURL('image/png'); fw = 64; fh = 32;
+    } else if (fw > 64 || fh > 32) {
+      // HD cape — Bedrock only supports 64x32, downscale to fit
+      const cvs = document.createElement('canvas'); cvs.width = 64; cvs.height = 32;
+      const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+      if (Math.abs(fw/fh - 46/22) < 0.15) {
+        // OptiFine HD (92x44 etc) — scale to 46x22 and place on 64x32
+        ctx.drawImage(img, 0, 0, fw, fh, 0, 0, 46, 22);
+      } else {
+        // Standard HD (128x64 etc) — scale to 64x32
+        ctx.drawImage(img, 0, 0, fw, fh, 0, 0, 64, 32);
+      }
+      finalDataURL = cvs.toDataURL('image/png'); fw = 64; fh = 32;
+      if (typeof toast === 'function') toast('HD cape detected — downscaled to 64x32 for Bedrock');
+    } else {
+      // Smaller unknown — place on 64x32
+      const cvs = document.createElement('canvas'); cvs.width = 64; cvs.height = 32;
+      const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0);
+      finalDataURL = cvs.toDataURL('image/png'); fw = 64; fh = 32;
     }
+
     const id = CB.nCapeId++;
-    CB.capes.push({ id, name, dataURL: finalDataURL, w: 64, h: 32 });
+    CB.capes.push({ id, name, dataURL: finalDataURL, w: fw, h: fh, hd: isHD });
     renderBuilderCapes(); renderAssignments(); updateBuildBtn();
     if (saveToLib !== false) saveCapeToLib(name, finalDataURL);
   };
@@ -244,9 +267,27 @@ function cropCape(dataURL) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const c = document.createElement('canvas'); c.width = 10; c.height = 16;
+      // Output at higher res for HD capes
+      const outW = 20, outH = 32;
+      const c = document.createElement('canvas'); c.width = outW; c.height = outH;
       const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, 1, 1, 10, 16, 0, 0, 10, 16);
+      const w = img.width, h = img.height;
+
+      // Detect format and crop the back face region
+      if (w === 46 && h === 22) {
+        // OptiFine 46x22: back face at (1,1) 10x16
+        ctx.drawImage(img, 1, 1, 10, 16, 0, 0, outW, outH);
+      } else if (w === 92 && h === 44) {
+        // HD OptiFine 2x: back face at (2,2) 20x32
+        ctx.drawImage(img, 2, 2, 20, 32, 0, 0, outW, outH);
+      } else if (w === 128 && h === 64) {
+        // HD 2x: back face at (2,2) 20x32
+        ctx.drawImage(img, 2, 2, 20, 32, 0, 0, outW, outH);
+      } else {
+        // Standard 64x32 or unknown: back face at (1,1) 10x16
+        const sx = w / 64, sy = h / 32;
+        ctx.drawImage(img, Math.round(1*sx), Math.round(1*sy), Math.round(10*sx), Math.round(16*sy), 0, 0, outW, outH);
+      }
       res(c.toDataURL());
     };
     img.onerror = () => res(dataURL);
@@ -789,14 +830,125 @@ function setupCapeLibPage() {
     }
     e.target.value = '';
   });
+
+  // Paste Link button
+  const pasteLinkBtn = $('#capePasteLinkBtn');
+  const linkDialog = $('#capeLinkDialog');
+  const linkInput = $('#capeLinkInput');
+  const linkFetch = $('#capeLinkFetch');
+  const linkCancel = $('#capeLinkCancel');
+  const linkStatus = $('#capeLinkStatus');
+
+  if (pasteLinkBtn) {
+    pasteLinkBtn.addEventListener('click', () => {
+      linkDialog.style.display = '';
+      linkInput.focus();
+    });
+  }
+  if (linkCancel) {
+    linkCancel.addEventListener('click', () => {
+      linkDialog.style.display = 'none';
+      linkInput.value = '';
+      linkStatus.textContent = '';
+    });
+  }
+  if (linkFetch) {
+    linkFetch.addEventListener('click', () => fetchCapeFromLink());
+    linkInput.addEventListener('keydown', e => { if (e.key === 'Enter') fetchCapeFromLink(); });
+  }
+
+  async function fetchCapeFromLink() {
+    const url = linkInput.value.trim();
+    if (!url) { toast('Paste a URL', true); return; }
+    linkStatus.textContent = 'Fetching...';
+    linkStatus.style.color = 'var(--text-mut)';
+
+    try {
+      // Extract cape image URL from SkinMC link
+      let imgUrl = url;
+      if (url.includes('skinmc.net/cape/')) {
+        const match = url.match(/cape\/(\d+)/);
+        if (match) {
+          imgUrl = 'https://skinmc.net/capes/' + match[1] + '/download';
+        }
+      }
+
+      // Fetch the image — try multiple methods
+      let resp, blob;
+      const proxies = [
+        'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(imgUrl),
+        'https://api.allorigins.win/raw?url=' + encodeURIComponent(imgUrl),
+        imgUrl
+      ];
+      for (const proxyUrl of proxies) {
+        try {
+          resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+          if (resp.ok) { blob = await resp.blob(); if (blob.size > 50) break; }
+        } catch (e) { continue; }
+      }
+      if (!blob || blob.size < 50) throw new Error('Could not download cape from that URL');
+
+      const dataURL = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+
+      // Verify it's a valid image
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error('Invalid image'));
+        i.src = dataURL;
+      });
+
+      const name = 'Cape ' + (url.match(/\d+/) || [Date.now()])[0];
+      saveCapeToLib(name, dataURL);
+      linkStatus.textContent = 'Imported! (' + img.width + 'x' + img.height + ')';
+      linkStatus.style.color = 'var(--accent)';
+      linkInput.value = '';
+      setTimeout(() => { linkDialog.style.display = 'none'; linkStatus.textContent = ''; }, 1500);
+    } catch (e) {
+      linkStatus.textContent = 'Failed: ' + e.message;
+      linkStatus.style.color = 'var(--red)';
+    }
+  }
 }
 
 function saveCapeToLib(name, dataURL) {
   const lib = lsGet('ez_capes');
   if (lib.find(c => c.name.toLowerCase() === name.toLowerCase())) return;
-  lib.unshift({ id: 'cape_' + Date.now() + Math.random().toString(36).slice(2,5), name, dataURL, savedAt: Date.now() });
-  if (lib.length > 50) lib.length = 50;
-  try { lsSet('ez_capes', lib); } catch { toast('Storage full', true); }
+
+  // Auto-downscale HD capes before saving
+  const img = new Image();
+  img.onload = () => {
+    let finalURL = dataURL;
+    const w = img.width, h = img.height;
+    if (w > 64 || h > 32) {
+      const cvs = document.createElement('canvas'); cvs.width = 64; cvs.height = 32;
+      const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+      if (Math.abs(w/h - 46/22) < 0.15) {
+        ctx.drawImage(img, 0, 0, w, h, 0, 0, 46, 22);
+      } else {
+        ctx.drawImage(img, 0, 0, w, h, 0, 0, 64, 32);
+      }
+      finalURL = cvs.toDataURL('image/png');
+      toast('HD cape detected — downscaled to 64x32 for Bedrock');
+    } else if (w === 46 && h === 22) {
+      const cvs = document.createElement('canvas'); cvs.width = 64; cvs.height = 32;
+      const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0);
+      finalURL = cvs.toDataURL('image/png');
+    }
+
+    const currentLib = lsGet('ez_capes');
+    if (currentLib.find(c => c.name.toLowerCase() === name.toLowerCase())) return;
+    currentLib.unshift({ id: 'cape_' + Date.now() + Math.random().toString(36).slice(2,5), name, dataURL: finalURL, savedAt: Date.now() });
+    if (currentLib.length > 50) currentLib.length = 50;
+    try { lsSet('ez_capes', currentLib); } catch { toast('Storage full', true); }
+    if (typeof renderCapeLibPage === 'function') renderCapeLibPage();
+  };
+  img.src = dataURL;
 }
 
 function renderBuiltinCapes() {
