@@ -116,9 +116,12 @@
   <div class="page" id="page-skins">
     <div class="page-header">
       <h2>Skin Library</h2>
-      <div class="dropzone-inline" id="skinLibDropzone">
-        <input type="file" id="skinLibFileInput" multiple accept="image/png" style="display:none">
-        <button class="btn btn-accent">+ Add Skins</button>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <div class="dropzone-inline" id="skinLibDropzone">
+          <input type="file" id="skinLibFileInput" multiple accept="image/png" style="display:none">
+          <button class="btn btn-accent">+ Add Skins</button>
+        </div>
+        <button class="btn btn-sm" id="skinDownloadAll" title="Download all skins as a ZIP">⬇ Download All</button>
       </div>
     </div>
     <div class="card" style="margin-bottom:14px">
@@ -150,6 +153,7 @@
           <button class="btn btn-accent">+ Add Capes</button>
         </div>
         <button class="btn btn-sm" id="capePasteLinkBtn">Paste Link</button>
+        <button class="btn btn-sm" id="capeDownloadAll" title="Download all capes as a ZIP">⬇ Download All</button>
       </div>
     </div>
     <!-- Link import dialog -->

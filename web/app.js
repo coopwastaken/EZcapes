@@ -703,6 +703,23 @@ function setupSkinLibPage() {
   $('#skinFetchJava').addEventListener('click', () => doFetch('java'));
   $('#skinFetchBedrock').addEventListener('click', () => doFetch('bedrock'));
   fetchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doFetch('java'); });
+
+  /* Download All Skins as ZIP */
+  $('#skinDownloadAll').addEventListener('click', async () => {
+    const lib = lsGet('ez_skins');
+    if (!lib.length) { toast('No skins in library', true); return; }
+    const z = new JSZip();
+    const folder = z.folder('skins');
+    for (const s of lib) {
+      const name = (s.name || 'skin_' + s.id).replace(/[^a-zA-Z0-9 _-]/g, '') + '.png';
+      const b64 = s.dataURL.split(',')[1];
+      folder.file(name, b64, { base64: true });
+    }
+    const blob = await z.generateAsync({ type: 'blob' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'EZCapes_Skins.zip'; a.click();
+    toast('Downloaded ' + lib.length + ' skins');
+  });
   input.addEventListener('change', e => {
     for (const f of e.target.files) {
       if (!f.type.startsWith('image/')) continue;
@@ -829,6 +846,23 @@ function setupCapeLibPage() {
       r.readAsDataURL(f);
     }
     e.target.value = '';
+  });
+
+  /* Download All Capes as ZIP */
+  $('#capeDownloadAll').addEventListener('click', async () => {
+    const lib = lsGet('ez_capes');
+    if (!lib.length) { toast('No capes in library', true); return; }
+    const z = new JSZip();
+    const folder = z.folder('capes');
+    for (const c of lib) {
+      const name = (c.name || 'cape_' + c.id).replace(/[^a-zA-Z0-9 _-]/g, '') + '.png';
+      const b64 = c.dataURL.split(',')[1];
+      folder.file(name, b64, { base64: true });
+    }
+    const blob = await z.generateAsync({ type: 'blob' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'EZCapes_Capes.zip'; a.click();
+    toast('Downloaded ' + lib.length + ' capes');
   });
 
   // Paste Link button
