@@ -77,6 +77,13 @@ function setupBuilder() {
   $('#btnClearAll').addEventListener('click', () => { CB.skins.forEach(s => { CB.assignments[s.id] = []; }); renderAssignments(); updateBuildBtn(); });
   $('#btnBuild').addEventListener('click', buildPack);
   $('#btnStartCurrent').addEventListener('click', startFromCurrent);
+  $('#btnClearBuilder').addEventListener('click', () => {
+    if (!CB.skins.length && !CB.capes.length) return;
+    if (!confirm('Clear all skins, capes, assignments, and names from the builder? (Your saved libraries are untouched.)')) return;
+    CB.skins = []; CB.capes = []; CB.assignments = {}; CB.comboNames = {};
+    $('#packName').value = ''; $('#packVer').value = '1.0.0'; $('#packDesc').value = '';
+    renderBuilderSkins(); renderBuilderCapes(); renderAssignments(); updateBuildBtn();
+  });
 }
 
 // Handle drop — supports folders via webkitGetAsEntry
@@ -238,18 +245,17 @@ async function renderBuilderSkins() {
   const list = $('#builderSkinList'); list.innerHTML = '';
   for (const s of CB.skins) {
     if (myId !== renderSkinsId) return;
-    const el = document.createElement('div'); el.className = 'bskin-item'; el.draggable = true; el.dataset.skinId = s.id;
-    const handle = document.createElement('div'); handle.className = 'bskin-drag'; handle.innerHTML = '⠿'; handle.title = 'Drag to reorder';
+    const el = document.createElement('div'); el.className = 'bskin-item'; el.draggable = true; el.dataset.skinId = s.id; el.title = `${s.name} · ${s.slim ? 'Slim' : 'Classic'} · ${s.w}x${s.h}`;
     const previewDiv = document.createElement('div'); previewDiv.className = 'bskin-preview';
     const thumbImg = document.createElement('img');
     thumbImg.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;object-fit:contain;border-radius:4px;';
     thumbImg.src = await makeSkinBodyThumb(s.dataURL, s.slim);
     if (myId !== renderSkinsId) return;
     previewDiv.appendChild(thumbImg);
-    const infoDiv = document.createElement('div'); infoDiv.className = 'bskin-info';
-    infoDiv.innerHTML = `<div class="bskin-name">${esc(s.name)}</div><div class="bskin-meta">${s.slim ? 'Slim' : 'Classic'} · ${s.w}x${s.h}</div>`;
+    const nameDiv = document.createElement('div'); nameDiv.className = 'bskin-name'; nameDiv.textContent = s.name;
     const rmBtn = document.createElement('button'); rmBtn.className = 'bskin-rm'; rmBtn.textContent = '✕';
-    rmBtn.addEventListener('click', () => {
+    rmBtn.addEventListener('click', e => {
+      e.stopPropagation();
       CB.skins = CB.skins.filter(x => x.id !== s.id);
       delete CB.assignments[s.id];
       for (const k in CB.comboNames) if (k.startsWith(s.id + '|')) delete CB.comboNames[k];
@@ -267,7 +273,7 @@ async function renderBuilderSkins() {
     el.addEventListener('dragover', e => {
       e.preventDefault(); e.dataTransfer.dropEffect = 'move';
       const rect = el.getBoundingClientRect();
-      const before = e.clientY - rect.top < rect.height / 2;
+      const before = e.clientX - rect.left < rect.width / 2;
       el.classList.toggle('bskin-drop-before', before);
       el.classList.toggle('bskin-drop-after', !before);
     });
@@ -281,14 +287,13 @@ async function renderBuilderSkins() {
       if (fromIdx < 0) return;
       const [moved] = CB.skins.splice(fromIdx, 1);
       const rect = el.getBoundingClientRect();
-      const before = e.clientY - rect.top < rect.height / 2;
+      const before = e.clientX - rect.left < rect.width / 2;
       const toIdx = CB.skins.findIndex(x => x.id === s.id);
       CB.skins.splice(before ? toIdx : toIdx + 1, 0, moved);
       renderBuilderSkins(); renderAssignments();
     });
-    el.appendChild(handle);
     el.appendChild(previewDiv);
-    el.appendChild(infoDiv);
+    el.appendChild(nameDiv);
     el.appendChild(rmBtn);
     list.appendChild(el);
   }

@@ -93,23 +93,20 @@ body::before { content: ''; position: fixed; inset: 0; background: url("data:ima
 .dz-text strong { color: var(--accent-bright); }
 .dropzone-inline { display: flex; gap: 8px; }
 
-/* ── Builder: Skin list ── */
-.builder-skin-list { margin-top: 10px; }
-.bskin-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 5px; transition: all 0.15s; position: relative; }
+/* ── Builder: Skin grid ── */
+.builder-skin-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 10px; }
+.bskin-item { background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: 8px; padding: 7px; text-align: center; position: relative; transition: all 0.15s; cursor: grab; }
 .bskin-item:hover { border-color: var(--border-hi); }
-.bskin-drag { color: var(--text-mut); cursor: grab; font-size: 16px; line-height: 1; padding: 4px 2px; user-select: none; flex-shrink: 0; }
-.bskin-drag:hover { color: var(--text-sec); }
+.bskin-item:active { cursor: grabbing; }
 .bskin-item.bskin-dragging { opacity: 0.4; }
 .bskin-item.bskin-drop-before::before,
-.bskin-item.bskin-drop-after::after { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: var(--accent); box-shadow: 0 0 6px var(--accent); pointer-events: none; }
-.bskin-item.bskin-drop-before::before { top: -3px; }
-.bskin-item.bskin-drop-after::after { bottom: -3px; }
-.bskin-preview { width: 32px; height: 64px; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.2); flex-shrink: 0; display:flex; align-items:center; justify-content:center; }
+.bskin-item.bskin-drop-after::after { content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); box-shadow: 0 0 6px var(--accent); pointer-events: none; }
+.bskin-item.bskin-drop-before::before { left: -5px; }
+.bskin-item.bskin-drop-after::after { right: -5px; }
+.bskin-preview { width: 100%; aspect-ratio: 1 / 2; border-radius: 4px; overflow: hidden; background: repeating-conic-gradient(rgba(255,255,255,0.02) 0% 25%, rgba(255,255,255,0.04) 0% 50%) 0 0/6px 6px; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; }
 .bskin-preview canvas { width: 100%; height: 100%; }
-.bskin-info { flex: 1; }
-.bskin-name { font-size: 13px; font-weight: 600; color: #fff; }
-.bskin-meta { font-size: 10px; color: var(--text-mut); margin-top: 2px; }
-.bskin-rm { background: none; border: none; color: var(--text-mut); cursor: pointer; font-size: 18px; padding: 4px; transition: color 0.15s; }
+.bskin-name { font-size: 9px; color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bskin-rm { position: absolute; top: 2px; right: 4px; background: none; border: none; color: var(--text-mut); cursor: pointer; font-size: 13px; padding: 0; line-height: 1; }
 .bskin-rm:hover { color: var(--red); }
 
 /* ── Builder: Cape grid ── */
