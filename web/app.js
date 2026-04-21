@@ -1,5 +1,6 @@
 // ═══════════════ EZCapes Web App ═══════════════
-const CB = { skins: [], capes: [], assignments: {}, nSkinId: 0, nCapeId: 0 };
+const CB = { skins: [], capes: [], assignments: {}, comboNames: {}, nSkinId: 0, nCapeId: 0 };
+const comboKey = (skinId, capeId) => skinId + '|' + capeId;
 const selectedSkins = new Set();
 const selectedCapes = new Set();
 
@@ -188,17 +189,61 @@ function makeSkinHeadThumb(dataURL) {
   });
 }
 
+function makeSkinBodyThumb(dataURL, slim) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.max(1, img.width / 64);
+      const legacy = img.height <= 32 * s;
+      const armW = slim ? 3 : 4;
+      const W = 8 + 2 * armW;
+      const c = document.createElement('canvas'); c.width = W; c.height = 32;
+      const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+      const draw = (sx, sy, sw, sh, dx, dy) => ctx.drawImage(img, sx*s, sy*s, sw*s, sh*s, dx, dy, sw, sh);
+      const drawMirror = (sx, sy, sw, sh, dx, dy) => {
+        ctx.save(); ctx.translate(dx + sw, dy); ctx.scale(-1, 1);
+        ctx.drawImage(img, sx*s, sy*s, sw*s, sh*s, 0, 0, sw, sh); ctx.restore();
+      };
+      // Base layer
+      draw(8, 8, 8, 8, armW, 0);            // head front
+      draw(20, 20, 8, 12, armW, 8);         // body front
+      draw(44, 20, armW, 12, 0, 8);         // right arm front (viewer-left)
+      draw(4, 20, 4, 12, armW, 20);         // right leg front
+      if (legacy) {
+        drawMirror(44, 20, armW, 12, armW + 8, 8);
+        drawMirror(4, 20, 4, 12, armW + 4, 20);
+      } else {
+        draw(36, 52, armW, 12, armW + 8, 8);
+        draw(20, 52, 4, 12, armW + 4, 20);
+      }
+      // Overlays
+      draw(40, 8, 8, 8, armW, 0);           // hat
+      if (!legacy) {
+        draw(20, 36, 8, 12, armW, 8);       // jacket
+        draw(44, 36, armW, 12, 0, 8);       // right arm overlay
+        draw(52, 52, armW, 12, armW + 8, 8);// left arm overlay
+        draw(4, 36, 4, 12, armW, 20);       // right leg overlay
+        draw(4, 52, 4, 12, armW + 4, 20);   // left leg overlay
+      }
+      resolve(c.toDataURL());
+    };
+    img.onerror = () => resolve(dataURL);
+    img.src = dataURL;
+  });
+}
+
 let renderSkinsId = 0;
 async function renderBuilderSkins() {
   const myId = ++renderSkinsId;
   const list = $('#builderSkinList'); list.innerHTML = '';
   for (const s of CB.skins) {
     if (myId !== renderSkinsId) return;
-    const el = document.createElement('div'); el.className = 'bskin-item';
+    const el = document.createElement('div'); el.className = 'bskin-item'; el.draggable = true; el.dataset.skinId = s.id;
+    const handle = document.createElement('div'); handle.className = 'bskin-drag'; handle.innerHTML = '⠿'; handle.title = 'Drag to reorder';
     const previewDiv = document.createElement('div'); previewDiv.className = 'bskin-preview';
     const thumbImg = document.createElement('img');
     thumbImg.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;object-fit:contain;border-radius:4px;';
-    thumbImg.src = await makeSkinHeadThumb(s.dataURL);
+    thumbImg.src = await makeSkinBodyThumb(s.dataURL, s.slim);
     if (myId !== renderSkinsId) return;
     previewDiv.appendChild(thumbImg);
     const infoDiv = document.createElement('div'); infoDiv.className = 'bskin-info';
@@ -207,8 +252,41 @@ async function renderBuilderSkins() {
     rmBtn.addEventListener('click', () => {
       CB.skins = CB.skins.filter(x => x.id !== s.id);
       delete CB.assignments[s.id];
+      for (const k in CB.comboNames) if (k.startsWith(s.id + '|')) delete CB.comboNames[k];
       renderBuilderSkins(); renderAssignments(); updateBuildBtn();
     });
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', String(s.id));
+      e.dataTransfer.effectAllowed = 'move';
+      el.classList.add('bskin-dragging');
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('bskin-dragging');
+      list.querySelectorAll('.bskin-drop-before, .bskin-drop-after').forEach(n => n.classList.remove('bskin-drop-before', 'bskin-drop-after'));
+    });
+    el.addEventListener('dragover', e => {
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      const rect = el.getBoundingClientRect();
+      const before = e.clientY - rect.top < rect.height / 2;
+      el.classList.toggle('bskin-drop-before', before);
+      el.classList.toggle('bskin-drop-after', !before);
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('bskin-drop-before', 'bskin-drop-after'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('bskin-drop-before', 'bskin-drop-after');
+      const fromId = Number(e.dataTransfer.getData('text/plain'));
+      if (!fromId || fromId === s.id) return;
+      const fromIdx = CB.skins.findIndex(x => x.id === fromId);
+      if (fromIdx < 0) return;
+      const [moved] = CB.skins.splice(fromIdx, 1);
+      const rect = el.getBoundingClientRect();
+      const before = e.clientY - rect.top < rect.height / 2;
+      const toIdx = CB.skins.findIndex(x => x.id === s.id);
+      CB.skins.splice(before ? toIdx : toIdx + 1, 0, moved);
+      renderBuilderSkins(); renderAssignments();
+    });
+    el.appendChild(handle);
     el.appendChild(previewDiv);
     el.appendChild(infoDiv);
     el.appendChild(rmBtn);
@@ -302,12 +380,45 @@ async function renderBuilderCapes() {
   for (const c of CB.capes) {
     if (!c.thumbURL) c.thumbURL = await cropCape(c.dataURL);
     if (myId !== renderCapesId) return; // superseded by newer render
-    const card = document.createElement('div'); card.className = 'bcape-card';
+    const card = document.createElement('div'); card.className = 'bcape-card'; card.draggable = true; card.dataset.capeId = c.id;
     card.innerHTML = `<img class="bcape-thumb" src="${c.thumbURL}"><div class="bcape-name">${esc(c.name)}</div><button class="bcape-rm" data-id="${c.id}">✕</button>`;
-    card.querySelector('.bcape-rm').addEventListener('click', () => {
+    card.querySelector('.bcape-rm').addEventListener('click', e => {
+      e.stopPropagation();
       CB.capes = CB.capes.filter(x => x.id !== c.id);
       for (const sid in CB.assignments) CB.assignments[sid] = CB.assignments[sid].filter(cid => cid !== c.id);
+      for (const k in CB.comboNames) if (k.endsWith('|' + c.id)) delete CB.comboNames[k];
       renderBuilderCapes(); renderAssignments(); updateBuildBtn();
+    });
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', String(c.id));
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('bcape-dragging');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('bcape-dragging');
+      grid.querySelectorAll('.bcape-drop-before, .bcape-drop-after').forEach(n => n.classList.remove('bcape-drop-before', 'bcape-drop-after'));
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      const rect = card.getBoundingClientRect();
+      const before = e.clientX - rect.left < rect.width / 2;
+      card.classList.toggle('bcape-drop-before', before);
+      card.classList.toggle('bcape-drop-after', !before);
+    });
+    card.addEventListener('dragleave', () => card.classList.remove('bcape-drop-before', 'bcape-drop-after'));
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('bcape-drop-before', 'bcape-drop-after');
+      const fromId = Number(e.dataTransfer.getData('text/plain'));
+      if (!fromId || fromId === c.id) return;
+      const fromIdx = CB.capes.findIndex(x => x.id === fromId);
+      if (fromIdx < 0) return;
+      const [moved] = CB.capes.splice(fromIdx, 1);
+      const rect = card.getBoundingClientRect();
+      const before = e.clientX - rect.left < rect.width / 2;
+      const toIdx = CB.capes.findIndex(x => x.id === c.id);
+      CB.capes.splice(before ? toIdx : toIdx + 1, 0, moved);
+      renderBuilderCapes(); renderAssignments();
     });
     grid.appendChild(card);
   }
@@ -324,37 +435,64 @@ function renderAssignments() {
     const section = document.createElement('div'); section.className = 'assign-section';
     const assigned = CB.assignments[skin.id].length;
 
-    const header = document.createElement('div'); header.className = 'assign-header';
+    const skinCol = document.createElement('div'); skinCol.className = 'assign-skin-col';
     const previewDiv = document.createElement('div'); previewDiv.className = 'bskin-preview';
     const skinName = document.createElement('div'); skinName.className = 'assign-skin-name'; skinName.textContent = skin.name;
     const countSpan = document.createElement('span'); countSpan.className = 'assign-count'; countSpan.textContent = `${assigned}/${CB.capes.length}`;
-    header.appendChild(previewDiv);
-    header.appendChild(skinName);
-    header.appendChild(countSpan);
-    section.appendChild(header);
+    skinCol.appendChild(previewDiv);
+    skinCol.appendChild(skinName);
+    skinCol.appendChild(countSpan);
+    section.appendChild(skinCol);
 
-    // 2D head preview
-    makeSkinHeadThumb(skin.dataURL).then(thumb => {
+    // 2D full-body preview
+    makeSkinBodyThumb(skin.dataURL, skin.slim).then(thumb => {
       const img = document.createElement('img');
       img.src = thumb;
       img.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;object-fit:contain;border-radius:4px;';
       previewDiv.appendChild(img);
     });
 
+    const capeCol = document.createElement('div'); capeCol.className = 'assign-cape-col';
+
     const toggles = document.createElement('div'); toggles.className = 'assign-toggles';
     CB.capes.forEach(cape => {
       const isOn = CB.assignments[skin.id].includes(cape.id);
       const t = document.createElement('div'); t.className = 'assign-toggle' + (isOn ? ' on' : '');
-      t.innerHTML = `<img class="assign-toggle-thumb" src="${cape.thumbURL || cape.dataURL}"><span class="assign-toggle-name">${esc(cape.name)}</span>`;
-      t.addEventListener('click', () => {
+      const head = document.createElement('div'); head.className = 'assign-toggle-head';
+      head.innerHTML = `<img class="assign-toggle-thumb" src="${cape.thumbURL || cape.dataURL}"><span class="assign-toggle-name">${esc(cape.name)}</span>`;
+      head.addEventListener('click', () => {
         const arr = CB.assignments[skin.id];
         const idx = arr.indexOf(cape.id);
-        if (idx >= 0) arr.splice(idx, 1); else arr.push(cape.id);
+        if (idx >= 0) {
+          arr.splice(idx, 1);
+          delete CB.comboNames[comboKey(skin.id, cape.id)];
+        } else {
+          arr.push(cape.id);
+        }
         renderAssignments(); updateBuildBtn();
       });
+      t.appendChild(head);
+      if (isOn) {
+        const key = comboKey(skin.id, cape.id);
+        const nameInput = document.createElement('textarea');
+        nameInput.className = 'assign-rename';
+        nameInput.placeholder = `${skin.name} + ${cape.name}`;
+        nameInput.value = CB.comboNames[key] || '';
+        nameInput.rows = 2;
+        nameInput.maxLength = 80;
+        nameInput.addEventListener('click', e => e.stopPropagation());
+        nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+        nameInput.addEventListener('input', () => {
+          const v = nameInput.value.replace(/\s+/g, ' ').trim();
+          if (v) CB.comboNames[key] = v;
+          else delete CB.comboNames[key];
+        });
+        t.appendChild(nameInput);
+      }
       toggles.appendChild(t);
     });
-    section.appendChild(toggles);
+    capeCol.appendChild(toggles);
+    section.appendChild(capeCol);
     area.appendChild(section);
   });
 }
@@ -426,7 +564,9 @@ async function buildPack() {
       const cape = CB.capes.find(c => c.id === capeId); if (!cape) continue;
       const loc = `entry_${ei}`;
       skinEntries.push({ localization_name: loc, geometry: geom, texture: skinFileMap[skin.id], cape: capeFileMap[capeId], type: 'free' });
-      langLines.push(`skin.${langPackId}.${loc}=${skin.name} + ${cape.name}`);
+      const customName = CB.comboNames[comboKey(skin.id, capeId)];
+      const entryLabel = (customName && customName.trim()) || `${skin.name} + ${cape.name}`;
+      langLines.push(`skin.${langPackId}.${loc}=${entryLabel}`);
       ei++;
     }
   }

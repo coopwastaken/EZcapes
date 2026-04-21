@@ -95,9 +95,16 @@ body::before { content: ''; position: fixed; inset: 0; background: url("data:ima
 
 /* ── Builder: Skin list ── */
 .builder-skin-list { margin-top: 10px; }
-.bskin-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 5px; transition: all 0.15s; }
+.bskin-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 5px; transition: all 0.15s; position: relative; }
 .bskin-item:hover { border-color: var(--border-hi); }
-.bskin-preview { width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.2); flex-shrink: 0; }
+.bskin-drag { color: var(--text-mut); cursor: grab; font-size: 16px; line-height: 1; padding: 4px 2px; user-select: none; flex-shrink: 0; }
+.bskin-drag:hover { color: var(--text-sec); }
+.bskin-item.bskin-dragging { opacity: 0.4; }
+.bskin-item.bskin-drop-before::before,
+.bskin-item.bskin-drop-after::after { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: var(--accent); box-shadow: 0 0 6px var(--accent); pointer-events: none; }
+.bskin-item.bskin-drop-before::before { top: -3px; }
+.bskin-item.bskin-drop-after::after { bottom: -3px; }
+.bskin-preview { width: 32px; height: 64px; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.2); flex-shrink: 0; display:flex; align-items:center; justify-content:center; }
 .bskin-preview canvas { width: 100%; height: 100%; }
 .bskin-info { flex: 1; }
 .bskin-name { font-size: 13px; font-weight: 600; color: #fff; }
@@ -107,8 +114,14 @@ body::before { content: ''; position: fixed; inset: 0; background: url("data:ima
 
 /* ── Builder: Cape grid ── */
 .builder-cape-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 10px; }
-.bcape-card { background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: 8px; padding: 7px; text-align: center; position: relative; transition: all 0.15s; }
+.bcape-card { background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: 8px; padding: 7px; text-align: center; position: relative; transition: all 0.15s; cursor: grab; }
 .bcape-card:hover { border-color: var(--border-hi); }
+.bcape-card:active { cursor: grabbing; }
+.bcape-card.bcape-dragging { opacity: 0.4; }
+.bcape-card.bcape-drop-before::before,
+.bcape-card.bcape-drop-after::after { content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); box-shadow: 0 0 6px var(--accent); pointer-events: none; }
+.bcape-card.bcape-drop-before::before { left: -5px; }
+.bcape-card.bcape-drop-after::after { right: -5px; }
 .bcape-thumb { width: 100%; aspect-ratio: 10/16; image-rendering: pixelated; object-fit: contain; display: block; margin-bottom: 3px; background: repeating-conic-gradient(rgba(255,255,255,0.02) 0% 25%, rgba(255,255,255,0.04) 0% 50%) 0 0/6px 6px; border-radius: 4px; }
 .bcape-name { font-size: 9px; color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bcape-rm { position: absolute; top: 2px; right: 4px; background: none; border: none; color: var(--text-mut); cursor: pointer; font-size: 13px; }
@@ -117,16 +130,23 @@ body::before { content: ''; position: fixed; inset: 0; background: url("data:ima
 /* ── Assignments ── */
 .assign-actions { display: flex; gap: 6px; margin-bottom: 12px; }
 .assign-empty { font-size: 12px; color: var(--text-mut); text-align: center; padding: 20px; }
-.assign-section { margin-bottom: 8px; background: rgba(0,0,0,0.12); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; }
-.assign-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.assign-header .bskin-preview { width: 36px; height: 36px; }
-.assign-skin-name { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
+.assign-section { margin-bottom: 8px; background: rgba(0,0,0,0.12); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; display: flex; gap: 14px; align-items: stretch; }
+.assign-skin-col { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 80px; }
+.assign-skin-col .bskin-preview { width: 80px; flex: 1 1 160px; min-height: 160px; }
+.assign-skin-col .bskin-preview img { border-radius: 4px; }
+.assign-cape-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.assign-skin-name { font-size: 13px; font-weight: 600; color: #fff; text-align: center; word-break: break-word; }
 .assign-count { font-size: 10px; color: var(--text-mut); }
-.assign-toggles { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 4px; }
-.assign-toggle { display: flex; align-items: center; gap: 4px; padding: 5px 8px; background: rgba(0,0,0,0.12); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.15s; user-select: none; }
+.assign-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.assign-toggle { width: 80px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; background: rgba(0,0,0,0.12); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.15s; user-select: none; }
 .assign-toggle:hover { border-color: var(--border-hi); }
 .assign-toggle.on { border-color: var(--accent); background: var(--accent-glow); box-shadow: 0 0 10px rgba(124,77,255,0.08); }
-.assign-toggle-thumb { width: 18px; height: 28px; image-rendering: pixelated; object-fit: contain; }
+.assign-toggle-head { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.assign-toggle-thumb { width: 100%; aspect-ratio: 10/16; image-rendering: pixelated; object-fit: contain; background: repeating-conic-gradient(rgba(255,255,255,0.02) 0% 25%, rgba(255,255,255,0.04) 0% 50%) 0 0/6px 6px; border-radius: 4px; }
+.assign-toggle-name { width: 100%; font-size: 11px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.assign-rename { width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font-size: 10px; color: #fff; font-family: inherit; cursor: text; text-align: center; resize: none; line-height: 1.3; overflow-wrap: anywhere; word-break: break-word; white-space: normal; overflow: hidden; }
+.assign-rename:focus { outline: none; border-color: var(--accent); overflow: auto; }
+.assign-rename::placeholder { color: var(--text-mut); font-style: italic; }
 .assign-toggle-name { font-size: 10px; color: var(--text-mut); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .assign-toggle.on .assign-toggle-name { color: #fff; }
 

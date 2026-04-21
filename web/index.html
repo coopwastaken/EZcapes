@@ -34,7 +34,7 @@
       <a href="https://ko-fi.com/coop6807" target="_blank" rel="noopener" class="nav-tab" style="text-decoration:none;display:flex;align-items:center;gap:10px;width:100%;color:var(--text-sec)"><span class="nav-icon">☕</span> Support Me</a>
     </div>
     <div class="sidebar-footer">
-      <div id="appVersion">EZCAPES v1.8.2 — mc-tools.net</div>
+      <div id="appVersion">EZCAPES v1.9.0 — mc-tools.net</div>
     </div>
   </nav>
 
@@ -50,20 +50,13 @@
       </div>
     </div>
 
-    <!-- Pack Settings + Shockbyte side by side -->
-    <div style="display:flex;gap:12px;margin-bottom:10px;align-items:stretch">
-      <div class="card" style="flex:1;margin-bottom:0;padding:14px">
-        <div class="card-label" style="margin-bottom:8px;padding-bottom:6px">Pack Settings</div>
-        <div class="row">
-          <div class="field"><label>Pack Name</label><input type="text" id="packName" placeholder="My Cape Pack" maxlength="80"></div>
-          <div class="field" style="max-width:120px"><label>Version</label><input type="text" id="packVer" value="1.0.0" maxlength="12"></div>
-        </div>
-        <div class="field"><label>Description</label><input type="text" id="packDesc" placeholder="Custom capes for Bedrock" maxlength="256"></div>
+    <div class="card" style="margin-bottom:10px;padding:14px">
+      <div class="card-label" style="margin-bottom:8px;padding-bottom:6px">Pack Settings</div>
+      <div class="row">
+        <div class="field"><label>Pack Name</label><input type="text" id="packName" placeholder="My Cape Pack" maxlength="80"></div>
+        <div class="field" style="max-width:120px"><label>Version</label><input type="text" id="packVer" value="1.0.0" maxlength="12"></div>
       </div>
-      <!-- Shockbyte affiliate -->
-      <a href="https://shockbyte.com/billing/aff.php?aff=11200" target="_blank" rel="noopener sponsored" style="display:flex;align-items:center;justify-content:center;flex-shrink:0;width:220px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:var(--card-bg);padding:16px;transition:border-color 0.15s">
-        <img src="https://shockbyte.com/assets/img/partners/twitch/shockbyte_affiliate.png" alt="Minecraft Server Hosting" style="width:100%;display:block">
-      </a>
+      <div class="field"><label>Description</label><input type="text" id="packDesc" placeholder="Custom capes for Bedrock" maxlength="256"></div>
     </div>
 
     <div class="grid-2">
@@ -109,6 +102,14 @@
     <div class="card" id="statusCard" style="display:none">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
       <div class="status-text" id="statusText"></div>
+    </div>
+
+    <div class="card" style="margin-top:10px;border-color:rgba(251,191,36,0.2)">
+      <div class="card-label" style="color:#fbbf24">Troubleshooting</div>
+      <div style="font-size:12px;color:var(--text-sec);line-height:1.7">
+        <strong style="color:#fbbf24">Not showing up?</strong> You may need to remove any other custom skin packs you've installed. Delete all folders in:<br>
+        <code style="display:block;margin-top:6px;padding:8px 10px;background:rgba(0,0,0,0.3);border-radius:6px;font-size:11px;color:var(--accent);user-select:all;cursor:pointer;word-break:break-all">C:\Users\{User}\AppData\Roaming\Minecraft Bedrock\Users\{Numbers or shared}\games\com.mojang\skin_packs</code>
+      </div>
     </div>
   </div>
 
@@ -366,13 +367,6 @@
         <div class="inst-step"><span class="inst-num">2</span> Extract the folder inside</div>
         <div class="inst-step"><span class="inst-num">3</span> Drag into <code>C:\XboxGames\Minecraft for Windows\Content\data\skin_packs\</code></div>
         <div class="inst-step"><span class="inst-num">4</span> Launch Minecraft → Classic Skins menu</div>
-      </div>
-    </div>
-    <div class="card" style="margin-top:10px;border-color:rgba(251,191,36,0.2)">
-      <div class="card-label" style="color:#fbbf24">Troubleshooting</div>
-      <div style="font-size:12px;color:var(--text-sec);line-height:1.7">
-        <strong style="color:#fbbf24">Not showing up?</strong> You may need to remove any other custom skin packs you've installed. Delete all folders in:<br>
-        <code style="display:block;margin-top:6px;padding:8px 10px;background:rgba(0,0,0,0.3);border-radius:6px;font-size:11px;color:var(--accent);user-select:all;cursor:pointer;word-break:break-all">C:\Users\{User}\AppData\Roaming\Minecraft Bedrock\Users\{Numbers or shared}\games\com.mojang\skin_packs</code>
       </div>
     </div>
   </div>
