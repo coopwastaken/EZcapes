@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win --x64",
-    "release": "GH_TOKEN=$(echo url=https://github.com | git credential fill | awk -F= '/^password=/{print $2}') electron-builder --win --x64 --publish always"
+    "release": "export GH_TOKEN=$(echo url=https://github.com | git credential fill | awk -F= '/^password=/{print $2}') && electron-builder --win --x64 --publish always && gh release edit \"v$npm_package_version\" --repo coopwastaken/EZcapes --draft=false --latest"
   },
   "keywords": [],
   "author": "",
