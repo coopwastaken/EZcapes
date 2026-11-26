@@ -58,6 +58,152 @@ app.whenReady().then(() => {
 const NEW_APP_URL = 'https://www.overwolf.com/app/mc-tools.net-mctools';
 ipcMain.handle('sunset:openNewApp', () => shell.openExternal(NEW_APP_URL));
 
+// ── Sunset: export ALL user data into one zip ──
+// Where EZCAPES keeps user data:
+//  1. Renderer localStorage (the real library): ez_skins, ez_capes, ez_packs. Passed in from the page.
+//  2. userData/{skins,capes,library}: older file-based storage, exported as-is if anything is there.
+//  3. The pack installed into Minecraft (skin_packs/custom), if present on this PC.
+function safeName(s, fallback) {
+  const n = String(s || '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 80);
+  return n || fallback;
+}
+function uniqueIn(used, base, ext) {
+  let name = base + ext, i = 2;
+  while (used.has(name.toLowerCase())) name = `${base} (${i++})${ext}`;
+  used.add(name.toLowerCase());
+  return name;
+}
+function decodeDataURL(u) {
+  if (typeof u !== 'string') return null;
+  const i = u.indexOf(',');
+  if (i < 0) return null;
+  try { return Buffer.from(u.slice(i + 1), 'base64'); } catch { return null; }
+}
+function addFolderToZip(zip, dir, prefix) {
+  let count = 0;
+  if (!fs.existsSync(dir)) return 0;
+  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fp = path.join(dir, ent.name);
+    if (ent.isDirectory()) count += addFolderToZip(zip, fp, prefix + ent.name + '/');
+    else if (ent.isFile()) {
+      try { zip.file(prefix + ent.name, fs.readFileSync(fp)); count++; } catch (e) { /* unreadable file: skip */ }
+    }
+  }
+  return count;
+}
+function backupDateStamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+ipcMain.handle('sunset:exportAll', async (e, payload) => {
+  try {
+    const store = (payload && payload.localStorage) || {};
+    const parse = k => { try { const v = JSON.parse(store[k] || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+    const skins = parse('ez_skins'), capes = parse('ez_capes'), packs = parse('ez_packs');
+
+    const win = BrowserWindow.fromWebContents(e.sender) || mainWindow;
+    const defaultPath = path.join(app.getPath('downloads'), `EZcapes-backup-${backupDateStamp()}.zip`);
+    const pick = await dialog.showSaveDialog(win, {
+      title: 'Save your EZCAPES backup',
+      defaultPath,
+      buttonLabel: 'Save backup',
+      filters: [{ name: 'Zip archive', extensions: ['zip'] }],
+    });
+    if (pick.canceled || !pick.filePath) return { ok: false, canceled: true };
+    let outPath = pick.filePath;
+    if (!/\.zip$/i.test(outPath)) outPath += '.zip';
+
+    const JSZip = require('jszip');
+    const zip = new JSZip();
+    const counts = { skins: 0, capes: 0, packs: 0, appFiles: 0, installedPack: 0 };
+
+    // Skins
+    let used = new Set();
+    const skinIndex = [];
+    for (const s of skins) {
+      const buf = decodeDataURL(s && s.dataURL);
+      const { dataURL, ...meta } = s || {};
+      if (buf) { meta.file = uniqueIn(used, safeName(meta.name, 'skin'), '.png'); zip.file('skins/' + meta.file, buf); counts.skins++; }
+      skinIndex.push(meta);
+    }
+    zip.file('skins/skins.json', JSON.stringify(skinIndex, null, 2));
+
+    // Capes
+    used = new Set();
+    const capeIndex = [];
+    for (const c of capes) {
+      const buf = decodeDataURL(c && c.dataURL);
+      const { dataURL, ...meta } = c || {};
+      if (buf) { meta.file = uniqueIn(used, safeName(meta.name, 'cape'), '.png'); zip.file('capes/' + meta.file, buf); counts.capes++; }
+      capeIndex.push(meta);
+    }
+    zip.file('capes/capes.json', JSON.stringify(capeIndex, null, 2));
+
+    // Saved packs (each one is a full Bedrock skin pack zip)
+    used = new Set();
+    const packIndex = [];
+    for (const p of packs) {
+      const { zip64, ...meta } = p || {};
+      let buf = null;
+      if (typeof zip64 === 'string' && zip64) { try { buf = Buffer.from(zip64, 'base64'); } catch {} }
+      if (buf && buf.length) { meta.file = uniqueIn(used, safeName(meta.name, 'pack'), '.zip'); zip.file('packs/' + meta.file, buf); counts.packs++; }
+      packIndex.push(meta);
+    }
+    zip.file('packs/packs.json', JSON.stringify(packIndex, null, 2));
+
+    // Older file-based storage in the app data folder
+    for (const [dir, name] of [[LIBRARY_DIR, 'library'], [SKINS_DIR, 'skins'], [CAPES_DIR, 'capes']]) {
+      counts.appFiles += addFolderToZip(zip, dir, `app-data/${name}/`);
+    }
+
+    // Pack currently installed in Minecraft (Windows only)
+    counts.installedPack = addFolderToZip(zip, path.join(MC_SKIN_PACKS, 'custom'), 'installed-in-minecraft/custom/');
+
+    // Raw copy of everything in local storage, so nothing is lost even if it isn't a skin/cape/pack
+    zip.file('raw/localStorage.json', JSON.stringify(store, null, 2));
+
+    zip.file('README.txt', [
+      'EZCAPES backup',
+      `Made: ${new Date().toString()}`,
+      `EZCAPES version: ${app.getVersion()}`,
+      '',
+      `skins/   ${counts.skins} skin PNGs + skins.json (names, slim/classic, sizes)`,
+      `capes/   ${counts.capes} cape PNGs + capes.json`,
+      `packs/   ${counts.packs} saved skin packs (.zip, Bedrock format) + packs.json (names, profiles)`,
+      `app-data/                ${counts.appFiles} files from the EZCAPES app data folder`,
+      `installed-in-minecraft/  ${counts.installedPack} files from the pack installed in Minecraft`,
+      'raw/localStorage.json    everything EZCAPES had saved, untouched',
+      '',
+      'EZCAPES is no longer supported. Bring these skins and capes into the new MCTools app:',
+      NEW_APP_URL,
+      '',
+    ].join('\r\n'));
+
+    // Stream to a temp file, then move into place, so a failure never leaves a half-written backup
+    const tmpPath = outPath + '.part';
+    await new Promise((resolve, reject) => {
+      const out = fs.createWriteStream(tmpPath);
+      out.on('error', reject);
+      out.on('finish', resolve);
+      zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true, compression: 'DEFLATE', compressionOptions: { level: 6 } })
+        .on('error', reject)
+        .pipe(out);
+    }).catch(err => { try { fs.unlinkSync(tmpPath); } catch {} throw err; });
+    fs.renameSync(tmpPath, outPath);
+
+    const size = fs.statSync(outPath).size;
+    return { ok: true, path: outPath, size, counts };
+  } catch (err) {
+    return { ok: false, error: String((err && err.message) || err).replace(/\.zip\.part\b/g, '.zip') };
+  }
+});
+
+ipcMain.handle('sunset:showInFolder', (e, p) => {
+  if (typeof p === 'string' && /\.zip$/i.test(p) && fs.existsSync(p)) shell.showItemInFolder(p);
+});
+
 app.on('window-all-closed', () => app.quit());
 
 // ── IPC Handlers ──

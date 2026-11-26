@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('ezcapes', {
 
   // Sunset notice: opens the MCTools app page (fixed URL in main.js)
   openNewApp: () => ipcRenderer.invoke('sunset:openNewApp'),
+  // Sunset: export all user data to one zip (main shows a save dialog)
+  exportAllData: (data) => ipcRenderer.invoke('sunset:exportAll', data),
+  showInFolder: (p) => ipcRenderer.invoke('sunset:showInFolder', p),
 
   // File dialogs
   openFiles: (opts) => ipcRenderer.invoke('dialog:openFiles', opts),
