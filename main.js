@@ -54,6 +54,10 @@ app.whenReady().then(() => {
   });
 });
 
+// Sunset notice: open the new MCTools app page in the user's browser (fixed URL only)
+const NEW_APP_URL = 'https://www.overwolf.com/app/mc-tools.net-mctools';
+ipcMain.handle('sunset:openNewApp', () => shell.openExternal(NEW_APP_URL));
+
 app.on('window-all-closed', () => app.quit());
 
 // ── IPC Handlers ──

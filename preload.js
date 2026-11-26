@@ -24,6 +24,9 @@ contextBridge.exposeInMainWorld('ezcapes', {
   getInstallPath: () => ipcRenderer.invoke('pack:getInstallPath'),
   readCurrentPack: () => ipcRenderer.invoke('pack:readCurrent'),
 
+  // Sunset notice: opens the MCTools app page (fixed URL in main.js)
+  openNewApp: () => ipcRenderer.invoke('sunset:openNewApp'),
+
   // File dialogs
   openFiles: (opts) => ipcRenderer.invoke('dialog:openFiles', opts),
 });
